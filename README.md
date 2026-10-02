@@ -7,7 +7,7 @@ Network maintenance tooling in Rust, as two crates in one workspace:
 | crate | what it is |
 |-------|------------|
 | [`netshell`](crates/netshell/) | A netmiko-style SSH shell driver: open a shell on Arista EOS, Cisco IOS/IOS-XE/NX-OS/IOS-XR, Juniper Junos or Palo Alto PAN-OS, turn paging off, run `show` commands, get clean output back. Library plus a small CLI. |
-| [`prepost`](crates/prepost/) | Pre/post change validation: capture device state before a maintenance window and after, diff the two with expected churn stripped, and turn the difference into an interpreted HTML report. A port of the Python [prepost-check](https://github.com/fnitguy-tech/prepost-check), built on `netshell`. |
+| [`mw`](crates/mw/) | Maintenance window check: capture device state before a maintenance window and after, diff the two with expected churn stripped, and turn the difference into an interpreted HTML report. A port of the Python [prepost-check](https://github.com/fnitguy-tech/prepost-check), built on `netshell`. |
 
 Both ship as single static binaries for Linux, Windows and macOS on
 every [release](https://github.com/fnitguy-tech/netshell/releases): no

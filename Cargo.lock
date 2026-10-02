@@ -1069,6 +1069,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "mw"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "indexmap",
+ "indicatif",
+ "netshell",
+ "regex",
+ "rpassword",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "thiserror",
+ "zip",
+]
+
+[[package]]
 name = "netshell"
 version = "0.1.0"
 dependencies = [
@@ -1307,26 +1327,6 @@ name = "portable-atomic"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
-
-[[package]]
-name = "prepost"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "indexmap",
- "indicatif",
- "netshell",
- "regex",
- "rpassword",
- "serde",
- "serde_json",
- "serde_yaml",
- "tempfile",
- "thiserror",
- "zip",
-]
 
 [[package]]
 name = "primefield"

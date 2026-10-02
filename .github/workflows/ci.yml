@@ -1,5 +1,5 @@
 # Format, lint and test both crates on the three desktop platforms. The
-# netshell tests talk to an in-process fake SSH server and the prepost
+# netshell tests talk to an in-process fake SSH server and the mw
 # tests work from bundled captures, so no device access is needed.
 name: ci
 

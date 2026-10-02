@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/netshell", "crates/prepost"]
+members = ["crates/netshell", "crates/mw"]
 
 [workspace.package]
 edition = "2024"

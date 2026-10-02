@@ -1,4 +1,4 @@
-# Tag v* to publish netshell and prepost binaries for Linux, Windows and macOS.
+# Tag v* to publish netshell and mw binaries for Linux, Windows and macOS.
 name: release
 
 on:
@@ -35,11 +35,11 @@ jobs:
       - name: Rename binaries
         shell: bash
         run: |
-          for bin in netshell prepost; do
+          for bin in netshell mw; do
             cp "target/${{ matrix.target }}/release/$bin${{ matrix.ext }}" "$bin-${{ matrix.suffix }}${{ matrix.ext }}"
           done
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             netshell-${{ matrix.suffix }}${{ matrix.ext }}
-            prepost-${{ matrix.suffix }}${{ matrix.ext }}
+            mw-${{ matrix.suffix }}${{ matrix.ext }}

@@ -1,0 +1,29 @@
+[package]
+name = "mw"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pre/post change validation for network maintenance windows: capture device state before and after, diff it, and turn the difference into an interpreted report"
+
+[dependencies]
+anyhow = "1.0"
+chrono = "0.4"
+clap = { version = "4.6", features = ["derive"] }
+indexmap = { version = "2.12", features = ["serde"] }
+indicatif = "0.18"
+netshell = { path = "../netshell", version = "0.1.0" }
+regex = "1.13"
+rpassword = "7.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+thiserror = "2.0"
+zip = { version = "6.0", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tempfile = "3.23"
+
+[[bin]]
+name = "mw"
+path = "src/main.rs"
