@@ -10,7 +10,10 @@ fn main() {
         let mut resource = winresource::WindowsResource::new();
         resource.set_icon("assets/mw.ico");
         resource.set("ProductName", "mw");
-        resource.set("FileDescription", "Maintenance window check: capture device state before and after a change, report what changed");
+        resource.set(
+            "FileDescription",
+            "Maintenance window check: capture device state before and after a change, report what changed",
+        );
         resource.compile().expect("compile the Windows resource");
     }
 }
