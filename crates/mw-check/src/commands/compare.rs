@@ -34,6 +34,12 @@ pub struct Args {
     /// Expectations YAML (default: reports/<TICKET>/expectations.yml when present)
     #[arg(short, long, value_name = "FILE")]
     pub expectations: Option<PathBuf>,
+
+    /// Your notes on the window, as Markdown
+    /// (default: reports/<TICKET>/notes.md when present). Rendered above the
+    /// findings. `mw notes` starts one for you.
+    #[arg(short, long, value_name = "FILE")]
+    pub notes: Option<PathBuf>,
 }
 
 /// The `pairs:` list of an inventory, or `None` when the file is
@@ -73,6 +79,33 @@ pub fn run(args: Args) -> anyhow::Result<()> {
 
     let expectations_label = layout::display_path(&expectations_path);
 
+    let notes_path = args.notes.clone().unwrap_or_else(|| dirs.notes.clone());
+    let notes_text = crate::notes::load(&notes_path);
+
+    match notes_text.as_deref() {
+        None => println!(
+            "No maintenance notes at {}. Run `mw notes` to start one.",
+            layout::display_path(&notes_path)
+        ),
+        Some(text) if crate::notes::render_html(text).is_empty() => {
+            // A template nobody filled in must not pass for a finished
+            // write-up, so say so rather than rendering empty headings.
+            println!(
+                "Notes: {} is still a blank template; leaving it out.",
+                layout::display_path(&notes_path)
+            );
+        }
+        Some(text) => {
+            let open = crate::notes::open_task_count(text);
+            let suffix = if open > 0 {
+                format!(", {open} item(s) still open")
+            } else {
+                String::new()
+            };
+            println!("Notes: {}{suffix}", layout::display_path(&notes_path));
+        }
+    }
+
     build_html_report(
         &ticket,
         &dirs,
@@ -80,6 +113,7 @@ pub fn run(args: Args) -> anyhow::Result<()> {
         Some(&pairs),
         expected.as_deref(),
         Some(&expectations_label),
+        notes_text.as_deref(),
     )?;
 
     Ok(())

@@ -290,6 +290,7 @@ fn demo_report_is_byte_identical_to_the_python_report() {
         Path::new("reports/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42"),
         &demo_analysis(),
         Some("docs/demo/NET-DEMO/expectations.yml"),
+        None,
         generated,
     );
 

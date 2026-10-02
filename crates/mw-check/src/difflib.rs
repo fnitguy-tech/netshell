@@ -398,7 +398,75 @@ impl Differ {
 /// line of `a` and `b` comes back once, prefixed `"- "`, `"+ "` or
 /// `"  "`, in the order the Python tool writes them.
 pub fn ndiff(a: &[String], b: &[String]) -> Vec<String> {
-    Differ { out: Vec::new() }.compare(a, b)
+    let (head, tail) = trim_matching_ends(a, b);
+
+    if head == 0 && tail == 0 {
+        return Differ { out: Vec::new() }.compare(a, b);
+    }
+
+    let mut out: Vec<String> = a[..head].iter().map(|line| format!("  {line}")).collect();
+    let core_a = &a[head..a.len() - tail];
+    let core_b = &b[head..b.len() - tail];
+
+    if !core_a.is_empty() || !core_b.is_empty() {
+        out.extend(Differ { out: Vec::new() }.compare(core_a, core_b));
+    }
+
+    out.extend(a[a.len() - tail..].iter().map(|line| format!("  {line}")));
+
+    out
+}
+
+/// How many lines at the start and end of `a` and `b` already match.
+///
+/// A firewall's `show config running` is 78,180 lines and a window changes
+/// a few of them. The longest-match search gets slower than linearly as the
+/// input grows, so diffing the whole file is expensive: 70% of a 1.9 second
+/// Python report ran inside `find_longest_match`, on configs that were
+/// identical apart from a few lines. Matching lines at the ends can't come
+/// out as `- ` or `+ `, however the matcher aligns the middle, so `ndiff`
+/// skips them and emits them as context.
+///
+/// Measured on that config: 795 ms down to 11 ms in Python.
+///
+/// This makes `ndiff` no longer a drop-in for CPython's on any input - it
+/// decides some pairings of equal lines by position rather than by search.
+/// Real captures hit that rarely and cosmetically: on the bundled demo a
+/// `+ !` moved two places among the other additions in a config diff, with
+/// the same lines added and removed either way. Both ports run the same
+/// trim and agree line for line. See `modules/difftrim.py` in
+/// prepost-check, which carries the same trim and the measurements.
+fn trim_matching_ends<T: PartialEq>(a: &[T], b: &[T]) -> (usize, usize) {
+    let limit = a.len().min(b.len());
+    let mut head = 0;
+
+    while head < limit && a[head] == b[head] {
+        head += 1;
+    }
+
+    let mut tail = 0;
+
+    while tail < limit - head && a[a.len() - 1 - tail] == b[b.len() - 1 - tail] {
+        tail += 1;
+    }
+
+    // Don't cut inside a run of equal lines. Which copy of a repeated line
+    // gets paired depends on the rest of the input, and "!" ends every block
+    // in an Arista config, so cutting through a run forces a different
+    // pairing. Backing up to the start of the run leaves the choice to the
+    // matcher, which keeps the two ports in step.
+    while head > 0 && ((head < a.len() && a[head - 1] == a[head]) || (head < b.len() && a[head - 1] == b[head])) {
+        head -= 1;
+    }
+
+    while tail > 0
+        && ((tail < a.len() - head && a[a.len() - 1 - tail] == a[a.len() - tail])
+            || (tail < b.len() - head && b[b.len() - 1 - tail] == a[a.len() - tail]))
+    {
+        tail -= 1;
+    }
+
+    (head, tail)
 }
 
 #[cfg(test)]

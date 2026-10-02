@@ -37,6 +37,7 @@ fn demo_analysis_renders_the_python_report() {
         &post,
         &analysis,
         Some("docs/demo/NET-DEMO/expectations.yml"),
+        None,
         &generated,
     )
     // The Python demo copies the captures under reports/; here they

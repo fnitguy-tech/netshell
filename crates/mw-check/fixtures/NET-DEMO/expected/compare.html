@@ -101,7 +101,7 @@ a {
     margin-bottom: 28px;
 }
 
-.card, .chart-card, .device, .outcome-card, .attention-card {
+.card, .chart-card, .device, .outcome-card, .attention-card, .notes-card {
     border: 1px solid var(--line);
     background: var(--panel);
     border-radius: 18px;
@@ -165,6 +165,46 @@ a {
     margin-bottom: 28px;
     border-left: 4px solid var(--yellow);
 }
+
+.notes-card {
+    padding: 22px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--blue);
+}
+
+.notes-card h3 {
+    margin: 18px 0 8px;
+    font-size: 15px;
+    color: var(--blue);
+}
+
+.notes-card h3:first-of-type { margin-top: 6px; }
+
+.notes-card p {
+    margin: 0 0 10px;
+    line-height: 1.6;
+    color: #dbeafe;
+}
+
+.notes-list {
+    margin: 0 0 10px;
+    padding-left: 20px;
+    line-height: 1.6;
+    color: #dbeafe;
+}
+
+.notes-list .notes-task {
+    list-style: none;
+    margin-left: -20px;
+}
+
+.notes-box {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    color: var(--yellow);
+}
+
+.notes-done .notes-box { color: var(--green); }
+.notes-done { color: var(--muted); }
 
 .pair-card {
     border: 1px solid var(--line);
@@ -719,9 +759,9 @@ details .diff-box {
                 <summary>show running-config</summary>
                 <div class="diff-box">
 
-<div class="added">+ !</div>
 <div class="added">+ vlan 240</div>
 <div class="added">+    name ISP-B-TRANSIT</div>
+<div class="added">+ !</div>
 <div class="added">+    shutdown</div>
 <div class="removed">-    shutdown</div>
 <div class="added">+    neighbor 198.51.100.1 shutdown</div>
@@ -822,9 +862,9 @@ details .diff-box {
                 <summary>show running-config</summary>
                 <div class="diff-box">
 
-<div class="added">+ !</div>
 <div class="added">+ vlan 240</div>
 <div class="added">+    name ISP-B-TRANSIT</div>
+<div class="added">+ !</div>
 
                 </div>
             </details>
@@ -923,7 +963,7 @@ details .diff-box {
 </div>
 
 <div class="footer">
-    Generated 2026-10-02 19:43:38 | Maintenance Report
+    Generated 2026-10-02 20:27:56 | Maintenance Report
 </div>
 
 <script>

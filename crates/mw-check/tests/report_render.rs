@@ -193,7 +193,7 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
 }
 
 fn render(ticket: &str, analysis: &Analysis) -> String {
-    render_html(ticket, Path::new(PRE), Path::new(POST), analysis, None)
+    render_html(ticket, Path::new(PRE), Path::new(POST), analysis, None, None)
 }
 
 fn index_of(haystack: &str, needle: &str) -> usize {
@@ -541,7 +541,7 @@ fn expectations_line_and_header_pill() {
     };
 
     let label = "reports/NET-5/expectations.yml";
-    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label));
+    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label), None);
     assert!(page.contains("<div class=\"meta-pill\">Expectations: reports/NET-5/expectations.yml</div>"));
     assert!(page.contains(
         "<li>Against your expectations file: 1 as planned, 0 missed the plan, 1 with no plan, 0 planned change(s) that never happened.</li>"
@@ -553,11 +553,11 @@ fn expectations_line_and_header_pill() {
     // The outcome line comes after the category items.
     assert_in_order(&page, &["protocol item(s).", "Against your expectations file:"]);
 
-    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, None);
+    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, None, None);
     assert!(page.contains("<div class=\"meta-pill\">Expectations: provided</div>"));
 
     analysis.expectations_in_play = false;
-    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label));
+    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label), None);
     assert!(!page.contains("Expectations:"));
     assert!(!page.contains("Against your expectations file:"));
 }
@@ -651,6 +651,7 @@ fn hostile_strings_are_escaped_everywhere() {
         Path::new("post/<y>"),
         &analysis,
         Some("expect/<z>.yml"),
+        None,
     );
 
     assert!(!page.contains("<script>alert"));
@@ -751,6 +752,7 @@ fn static_skeleton_is_identical_to_the_fixture() {
         Path::new(POST),
         &analysis,
         None,
+        None,
         "2026-01-01 00:00:00",
     );
 
@@ -798,6 +800,7 @@ fn chart_canvases_and_footer() {
         Path::new(PRE),
         Path::new(POST),
         &analysis,
+        None,
         None,
         "2026-04-14 10:45:00",
     );
@@ -926,17 +929,17 @@ fn build_html_report_reports_missing_run_folders() {
     let tmp = tempfile::tempdir().unwrap();
     let dirs = ticket_dirs_under(tmp.path(), "NET-1");
 
-    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None).unwrap();
+    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None, None).unwrap();
     assert_eq!(result, None);
     assert!(!dirs.compare.exists());
 
     std::fs::create_dir_all(dirs.precheck.join("precheck_2026-01-01_00-00")).unwrap();
-    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None).unwrap();
+    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None, None).unwrap();
     assert_eq!(result, None);
     assert!(!dirs.compare.exists());
 
     std::fs::create_dir_all(dirs.postcheck.join("notes")).unwrap();
     std::fs::write(dirs.postcheck.join("postcheck_2026-01-01_02-00.zip"), b"").unwrap();
-    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None).unwrap();
+    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None, None).unwrap();
     assert_eq!(result, None, "neither a zip nor an unprefixed folder is a run");
 }

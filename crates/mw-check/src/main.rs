@@ -14,7 +14,7 @@
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use mw_check::commands::{compare, demo, postcheck, precheck};
+use mw_check::commands::{compare, demo, notes, postcheck, precheck};
 
 #[derive(Parser)]
 #[command(
@@ -39,6 +39,8 @@ enum Command {
     /// Build the interpreted HTML report from the latest pre/post captures
     #[command(aliases = ["compare", "diff"])]
     Report(compare::Args),
+    /// Start the maintenance notes for a ticket (reports/<TICKET>/notes.md)
+    Notes(notes::Args),
     /// Run the whole workflow on the bundled fictional dataset, no devices
     Demo(demo::Args),
 }
@@ -49,6 +51,7 @@ fn main() -> ExitCode {
         Command::Before(args) => precheck::run(args),
         Command::After(args) => postcheck::run(args),
         Command::Report(args) => compare::run(args),
+        Command::Notes(args) => notes::run(args),
         Command::Demo(args) => demo::run(args),
     };
 

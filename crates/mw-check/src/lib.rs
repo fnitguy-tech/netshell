@@ -33,6 +33,7 @@ pub mod difflib;
 pub mod expectations;
 pub mod inventory;
 pub mod layout;
+pub mod notes;
 pub mod redact;
 pub mod report;
 pub mod textcompare;

@@ -78,9 +78,9 @@ Command: show running-config
 --------------------------------------------------------------------------------
 Differences detected.
 
-+ !
 + vlan 240
 +    name ISP-B-TRANSIT
++ !
 +    shutdown
 -    shutdown
 +    neighbor 198.51.100.1 shutdown
@@ -112,9 +112,9 @@ Command: show running-config
 --------------------------------------------------------------------------------
 Differences detected.
 
-+ !
 + vlan 240
 +    name ISP-B-TRANSIT
++ !
 
 --------------------------------------------------------------------------------
 Command: show vlan brief

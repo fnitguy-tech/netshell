@@ -11,7 +11,7 @@
 //! operationally meaningful columns (e.g. a BGP peer's state and prefix
 //! counts survive; its up/down timer does not). That is the right call
 //! for a diff, where the timer differs on every capture; the
-//! interpreted HTML report reads the same column on purpose, because an
+//! interpreted HTML report reads the same column, because an
 //! uptime that went backwards is the only trace a session that reset
 //! and recovered leaves in that table.
 //!

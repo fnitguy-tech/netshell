@@ -11,6 +11,7 @@
 //!     Postcheck/postcheck_<timestamp>/<hostname>.txt (+ .zip)
 //!     Compare/compare_<timestamp>.txt / .html
 //!     expectations.yml   (optional, written by hand: expected BGP deltas)
+//!     notes.md           (optional: the engineer's account of the window)
 //! ```
 //!
 //! The Python tool anchors `reports/` to its repository root. A binary
@@ -45,6 +46,7 @@ pub struct TicketDirs {
     pub postcheck: PathBuf,
     pub compare: PathBuf,
     pub expectations: PathBuf,
+    pub notes: PathBuf,
 }
 
 pub fn ticket_dirs(ticket: &str) -> TicketDirs {
@@ -59,6 +61,7 @@ pub fn ticket_dirs_under(reports: &Path, ticket: &str) -> TicketDirs {
         postcheck: base.join("Postcheck"),
         compare: base.join("Compare"),
         expectations: base.join("expectations.yml"),
+        notes: base.join("notes.md"),
         base,
     }
 }

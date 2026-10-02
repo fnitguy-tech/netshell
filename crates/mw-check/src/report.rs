@@ -234,6 +234,7 @@ pub fn render_html(
     postcheck_folder: &Path,
     analysis: &Analysis,
     expectations_label: Option<&str>,
+    notes_text: Option<&str>,
 ) -> String {
     let generated = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     render_html_at(
@@ -242,6 +243,7 @@ pub fn render_html(
         postcheck_folder,
         analysis,
         expectations_label,
+        notes_text,
         &generated,
     )
 }
@@ -254,6 +256,7 @@ pub fn render_html_at(
     postcheck_folder: &Path,
     analysis: &Analysis,
     expectations_label: Option<&str>,
+    notes_text: Option<&str>,
     generated: &str,
 ) -> String {
     let device_reports = &analysis.device_reports;
@@ -376,6 +379,15 @@ pub fn render_html_at(
 "
         .to_string(),
     );
+
+    // The engineer's account comes before the machine's, because a reader
+    // opening this on a ticket wants to know what a person concluded before
+    // they read what a parser noticed.
+    let notes_html = notes_text.map(crate::notes::render_html).unwrap_or_default();
+
+    if !notes_html.is_empty() {
+        parts.push(format!("\n    {notes_html}\n"));
+    }
 
     parts.push(
         "
@@ -607,6 +619,7 @@ pub fn build_html_report(
     pairs: Option<&[(String, String)]>,
     expectations: Option<&[Expectation]>,
     expectations_label: Option<&str>,
+    notes_text: Option<&str>,
 ) -> anyhow::Result<Option<PathBuf>> {
     let precheck_folder = find_latest_folder(&dirs.precheck, "precheck_");
     let postcheck_folder = find_latest_folder(&dirs.postcheck, "postcheck_");
@@ -631,6 +644,7 @@ pub fn build_html_report(
         &postcheck_folder,
         &analysis,
         expectations_label,
+        notes_text,
     );
 
     fs::write(&html_report, page).with_context(|| format!("writing {}", html_report.display()))?;
@@ -737,7 +751,7 @@ a {
     margin-bottom: 28px;
 }
 
-.card, .chart-card, .device, .outcome-card, .attention-card {
+.card, .chart-card, .device, .outcome-card, .attention-card, .notes-card {
     border: 1px solid var(--line);
     background: var(--panel);
     border-radius: 18px;
@@ -801,6 +815,46 @@ a {
     margin-bottom: 28px;
     border-left: 4px solid var(--yellow);
 }
+
+.notes-card {
+    padding: 22px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--blue);
+}
+
+.notes-card h3 {
+    margin: 18px 0 8px;
+    font-size: 15px;
+    color: var(--blue);
+}
+
+.notes-card h3:first-of-type { margin-top: 6px; }
+
+.notes-card p {
+    margin: 0 0 10px;
+    line-height: 1.6;
+    color: #dbeafe;
+}
+
+.notes-list {
+    margin: 0 0 10px;
+    padding-left: 20px;
+    line-height: 1.6;
+    color: #dbeafe;
+}
+
+.notes-list .notes-task {
+    list-style: none;
+    margin-left: -20px;
+}
+
+.notes-box {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    color: var(--yellow);
+}
+
+.notes-done .notes-box { color: var(--green); }
+.notes-done { color: var(--muted); }
 
 .pair-card {
     border: 1px solid var(--line);

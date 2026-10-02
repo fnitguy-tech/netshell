@@ -1,8 +1,9 @@
-//! The four subcommands: before, after, report, demo. Each has a clap
-//! `Args` struct and a `run`.
+//! The five subcommands: before, after, report, notes, demo. Each has a
+//! clap `Args` struct and a `run`.
 
 pub mod compare;
 pub mod demo;
+pub mod notes;
 pub mod postcheck;
 pub mod precheck;
 

@@ -333,7 +333,7 @@ pub fn run(args: Args) -> anyhow::Result<()> {
     let expected = expectations::load_expectations(&expectations_path, Some(TICKET))?;
     let label = shown(&expectations_path);
     println!("Expectations: {label} ({} entries)", expected.len());
-    report::build_html_report(TICKET, &dirs, &run_timestamp, None, Some(&expected), Some(&label))?;
+    report::build_html_report(TICKET, &dirs, &run_timestamp, None, Some(&expected), Some(&label), None)?;
 
     Ok(())
 }
