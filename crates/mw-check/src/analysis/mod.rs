@@ -68,6 +68,8 @@ pub fn analyze(
 
     let mut total_findings_by_classification = ClassificationCounts::default();
     let mut impact_totals = ImpactCounts::default();
+    let mut window_totals = ImpactCounts::default();
+    let mut symmetry_totals = ImpactCounts::default();
 
     struct Device {
         file_name: String,
@@ -165,6 +167,17 @@ pub fn analyze(
             total_findings_by_classification.add(finding.classification, 1);
             impact_totals.add(finding.impact, 1);
 
+            // The health verdict answers "did this window change anything". A
+            // pair-symmetry finding is a standing condition that was just as
+            // true before the window as after, so it is counted on its own and
+            // kept out of that verdict - otherwise a maintenance that changed
+            // nothing reads as 30 problems it did not cause.
+            if finding.category == pairs::CATEGORY {
+                symmetry_totals.add(finding.impact, 1);
+            } else {
+                window_totals.add(finding.impact, 1);
+            }
+
             match finding.title.as_str() {
                 TITLE_AS_PLANNED => expectation_totals.as_planned += 1,
                 TITLE_DIFFERS => expectation_totals.differs += 1,
@@ -177,6 +190,7 @@ pub fn analyze(
         if config_change_count > 0 {
             total_findings_by_classification.add(Classification::Configuration, config_change_count);
             impact_totals.add(Impact::Changed, config_change_count);
+            window_totals.add(Impact::Changed, config_change_count);
         }
 
         for (category, count) in raw_categories.iter() {
@@ -237,6 +251,8 @@ pub fn analyze(
         expectation_totals,
         total_findings_by_classification,
         impact_totals,
+        window_totals,
+        symmetry_totals,
         devices_with_findings,
     })
 }

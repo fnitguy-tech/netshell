@@ -124,9 +124,15 @@ pub fn render_finding(finding: &Finding) -> String {
     )
 }
 
-/// The network-wide verdict: the worst impact level with any finding.
+/// The network-wide verdict: the worst impact level with any finding from
+/// this window.
+///
+/// Graded on `window_totals`, not `impact_totals`. A pair-symmetry finding is
+/// a standing condition the window did not create - it was as true in the
+/// precheck - so it gets its own count and its own sentence instead of turning
+/// a clean verification red.
 pub fn overall_health(analysis: &Analysis) -> Impact {
-    let totals = &analysis.impact_totals;
+    let totals = &analysis.window_totals;
     if totals.get(Impact::ActionRequired) > 0 {
         Impact::ActionRequired
     } else if totals.get(Impact::Attention) > 0 {
@@ -141,9 +147,7 @@ pub fn overall_health(analysis: &Analysis) -> Impact {
 /// The assessment sentence shown under the verdict.
 pub fn assessment_text(health: Impact) -> &'static str {
     match health {
-        Impact::Stable => {
-            "No attention-level operational changes were detected. Review changed items and raw evidence as needed."
-        }
+        Impact::Stable => "Nothing changed between the precheck and the postcheck beyond expected churn.",
         Impact::Changed => "Meaningful changes were detected, but no immediate attention markers were identified.",
         Impact::Attention => {
             "Operational changes were detected that should be reviewed. Click the Attention card to jump to items requiring review."
@@ -264,7 +268,16 @@ pub fn render_html_at(
     let impact_totals = &analysis.impact_totals;
 
     let health = overall_health(analysis);
-    let assessment = assessment_text(health);
+    let symmetry_count: usize = analysis.symmetry_totals.iter().map(|(_, n)| n).sum();
+    let mut assessment = assessment_text(health).to_string();
+
+    if symmetry_count > 0 {
+        assessment.push_str(&format!(
+            " Separately, {symmetry_count} pair-symmetry finding(s) describe how the two members of a redundant \
+             pair differ from each other right now. They are not changes from this window - they were as true in \
+             the precheck - and they are listed under Pair Symmetry."
+        ));
+    }
     let items = summary_items(analysis);
 
     let attention_devices: Vec<&DeviceReport> = device_reports
@@ -330,6 +343,7 @@ pub fn render_html_at(
         <a class=\"card clickable\" href=\"#device-findings\"><div class=\"label\">Devices With Findings</div><div class=\"value\">{devices_with_findings}</div></a>
         <a class=\"card clickable\" href=\"#device-findings\"><div class=\"label\">Changed</div><div class=\"value\">{changed}</div></a>
         <a class=\"card clickable\" href=\"#attention-items\"><div class=\"label\">Attention</div><div class=\"value health-attention\">{attention}</div></a>
+        <a class=\"card clickable\" href=\"#attention-items\"><div class=\"label\">Pair Symmetry</div><div class=\"value\">{symmetry}</div></a>
     </div>
 
     <div class=\"outcome-card\">
@@ -351,9 +365,10 @@ pub fn render_html_at(
         health_label = escape(health.label()),
         devices_checked = analysis.common_files.len(),
         devices_with_findings = analysis.devices_with_findings,
-        changed = impact_totals.get(Impact::Changed),
-        attention = impact_totals.get(Impact::Attention),
-        assessment = escape(assessment),
+        changed = analysis.window_totals.get(Impact::Changed),
+        attention = analysis.window_totals.get(Impact::Attention),
+        symmetry = symmetry_count,
+        assessment = escape(&assessment),
     ));
 
     for item in &items {

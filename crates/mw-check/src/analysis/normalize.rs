@@ -40,6 +40,83 @@ const NOISY_STARTS: &[&str] = &[
     "lifetime remain:",
 ];
 
+/// PAN-OS prints `show routing route` as fixed-width columns under a header
+/// that names them:
+///
+/// ```text
+/// destination      nexthop      metric flags      age   interface   next-AS
+/// 10.61.82.7/32    10.2.1.1            A?B        2724             4280000001
+/// ```
+///
+/// The age ticks every second, so a capture pair two minutes apart reports
+/// every BGP route as changed - 224 of 224 lines on one firewall, with an
+/// identical route set. The header gives us the column map, so read the age
+/// span off it rather than guessing a field index: `interface` and `next-AS`
+/// are both optionally blank, which makes counting from the right unreliable.
+const PANOS_ROUTE_COMMANDS: &[&str] = &["show routing route"];
+
+static PANOS_ROUTE_HEADER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^destination\s+nexthop\s+.*\bage\b").unwrap());
+static PANOS_ROUTE_AGE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\s*)(\d+)").unwrap());
+
+/// Blank the age column of a PAN-OS routing table, tracking the header.
+///
+/// A wide age overruns the header's own column width - `age` is 6 columns but
+/// a 2666471-second route needs 7 - so match the number that starts in the age
+/// column rather than slicing a fixed span. Requiring it to start before the
+/// next column keeps a blank age from swallowing `next-AS`, which is also
+/// numeric. One capture holds a header per virtual router, so the columns are
+/// re-read each time rather than fixed once.
+pub fn blank_panos_route_age(lines: &[String]) -> Vec<String> {
+    let mut blanked = Vec::with_capacity(lines.len());
+    let mut columns: Option<(usize, usize)> = None;
+
+    for line in lines {
+        if PANOS_ROUTE_HEADER.is_match(line) {
+            if let Some(age_start) = line.find("age") {
+                let rest = &line[age_start + "age".len()..];
+                let gap = rest.len() - rest.trim_start().len();
+                let next_start = if rest.trim().is_empty() {
+                    line.len()
+                } else {
+                    age_start + "age".len() + gap
+                };
+                columns = Some((age_start, next_start));
+            }
+
+            blanked.push(line.clone());
+            continue;
+        }
+
+        let Some((age_start, next_start)) = columns else {
+            blanked.push(line.clone());
+            continue;
+        };
+
+        if line.len() <= age_start || !line.is_char_boundary(age_start) {
+            blanked.push(line.clone());
+            continue;
+        }
+
+        match PANOS_ROUTE_AGE.captures(&line[age_start..]) {
+            Some(caps) => {
+                let lead = caps.get(1).map_or(0, |m| m.len());
+                let age = caps.get(2).map_or(0, |m| m.len());
+                let cut = age_start + lead;
+
+                if cut < next_start {
+                    blanked.push(format!("{}{}{}", &line[..cut], " ".repeat(age), &line[cut + age..]));
+                } else {
+                    blanked.push(line.clone());
+                }
+            }
+            None => blanked.push(line.clone()),
+        }
+    }
+
+    blanked
+}
+
 static IPV4: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d+\.\d+\.\d+\.\d+$").unwrap());
 static ARP_AGE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d+:\d+:\d+$").unwrap());
 static AGO_CLOCK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+\d+:\d+:\d+ ago$").unwrap());
@@ -151,6 +228,13 @@ pub fn clean_line_for_compare(command: &str, line: &str) -> Option<String> {
 
 /// A section's lines, normalized and with noise dropped.
 pub fn normalized_section(command: &str, lines: &[String]) -> Vec<String> {
+    if PANOS_ROUTE_COMMANDS.contains(&command) {
+        return blank_panos_route_age(lines)
+            .iter()
+            .filter_map(|line| clean_line_for_compare(command, line))
+            .collect();
+    }
+
     lines
         .iter()
         .filter_map(|line| clean_line_for_compare(command, line))

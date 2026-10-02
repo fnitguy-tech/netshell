@@ -303,5 +303,12 @@ pub struct Analysis {
     pub expectation_totals: ExpectationTotals,
     pub total_findings_by_classification: ClassificationCounts,
     pub impact_totals: ImpactCounts,
+    /// `impact_totals` split by where the finding came from: `window_totals`
+    /// from comparing pre against post, `symmetry_totals` from comparing the
+    /// two members of a pair against each other. The health verdict is graded
+    /// on the window alone, because a pair-symmetry finding is a standing
+    /// condition the window did not create.
+    pub window_totals: ImpactCounts,
+    pub symmetry_totals: ImpactCounts,
     pub devices_with_findings: usize,
 }

@@ -135,6 +135,8 @@ fn device(
 /// severity.
 fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
     let mut impact_totals = ImpactCounts::default();
+    let mut window_totals = ImpactCounts::default();
+    let mut symmetry_totals = ImpactCounts::default();
     let mut by_classification = ClassificationCounts::default();
     let mut devices_with_findings = 0;
 
@@ -148,6 +150,12 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
             }
             by_classification.add(finding.classification, 1);
             impact_totals.add(finding.impact, 1);
+
+            if finding.category == mw_check::analysis::pairs::CATEGORY {
+                symmetry_totals.add(finding.impact, 1);
+            } else {
+                window_totals.add(finding.impact, 1);
+            }
         }
         let config_change_count = report
             .config_changes
@@ -157,6 +165,7 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
         if config_change_count > 0 {
             by_classification.add(Classification::Configuration, config_change_count);
             impact_totals.add(Impact::Changed, config_change_count);
+            window_totals.add(Impact::Changed, config_change_count);
         }
     }
 
@@ -177,6 +186,8 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
         expectation_totals: ExpectationTotals::default(),
         total_findings_by_classification: by_classification,
         impact_totals,
+        window_totals,
+        symmetry_totals,
         devices_with_findings,
     }
 }
@@ -330,9 +341,7 @@ fn stable_network_verdict() {
     let page = render("NET-1", &analysis);
 
     assert!(page.contains("<div class=\"value health-stable\">Stable</div>"));
-    assert!(page.contains(
-        "<p>No attention-level operational changes were detected. Review changed items and raw evidence as needed.</p>"
-    ));
+    assert!(page.contains("<p>Nothing changed between the precheck and the postcheck beyond expected churn.</p>"));
     assert!(page.contains("<li>No meaningful findings detected.</li>"));
     assert!(!page.contains("finding/evidence item(s) detected"));
     assert!(page.contains("<p class=\"empty\">No attention-level findings detected.</p>"));
@@ -477,8 +486,13 @@ fn pair_symmetry_section() {
     assert_eq!(page.matches("Pair Prefix-List Divergence").count(), 3);
     assert!(page.contains("SITE-A-SW-1 vs SITE-A-SW-2"));
     assert!(page.contains("<span class=\"arrow\">vs</span>"));
-    // Counted once network-wide, attributed to both members.
-    assert!(page.contains("<div class=\"label\">Attention</div><div class=\"value health-attention\">1</div>"));
+    // Counted once network-wide, attributed to both members - and on the
+    // Pair Symmetry card, not Attention, because it is not a change this
+    // window made. The verdict stays Stable.
+    assert!(page.contains("<div class=\"label\">Attention</div><div class=\"value health-attention\">0</div>"));
+    assert!(page.contains("<div class=\"label\">Pair Symmetry</div><div class=\"value\">1</div>"));
+    assert!(page.contains("<div class=\"value health-stable\">Stable</div>"));
+    assert!(page.contains("1 pair-symmetry finding(s) describe how the two members"));
     assert!(page.contains("href=\"#device-site-a-sw-1\""));
     assert!(page.contains("href=\"#device-site-a-sw-2\""));
     assert!(!page.contains("href=\"#device-site-b-sw-1\""));
@@ -682,6 +696,7 @@ fn chart_data_is_embedded_like_python_json() {
         .total_findings_by_classification
         .add(Classification::EvidenceOnly, 1);
     analysis.impact_totals.add(Impact::Changed, 6);
+    analysis.window_totals.add(Impact::Changed, 6);
     let page = render("NET-1", &analysis);
 
     assert!(page.contains("const healthLabels = [\"Stable\", \"Changed\", \"Attention\", \"Action Required\"];"));

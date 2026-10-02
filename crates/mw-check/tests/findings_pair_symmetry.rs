@@ -213,11 +213,12 @@ fn lists_present_on_one_member_only_are_not_compared_unless_both_had_them() {
 
 #[test]
 fn route_map_divergence_lists_the_differing_lines() {
+    // A match line that differs changes which routes the member acts on.
     let pair = pair("SITE-A-SW-1", "SITE-A-SW-2");
     let sw1 = capture(None, Some(&ROUTE_MAP), None);
     let changed: Vec<String> = ROUTE_MAP
         .iter()
-        .map(|line| line.replace("64500:100", "64500:200"))
+        .map(|line| line.replace("prefix-list ISP-OUT", "prefix-list ISP-Out"))
         .collect();
     let changed: Vec<&str> = changed.iter().map(String::as_str).collect();
     let sw2 = capture(None, Some(&changed), None);
@@ -229,18 +230,130 @@ fn route_map_divergence_lists_the_differing_lines() {
     assert!(
         findings[0]
             .detail
-            .contains(&DiffLine::removed("SITE-A-SW-1: set community 64500:100"))
+            .contains(&DiffLine::removed("SITE-A-SW-1: match ip address prefix-list ISP-OUT"))
     );
     assert!(
         findings[0]
             .detail
-            .contains(&DiffLine::added("SITE-A-SW-2: set community 64500:200"))
+            .contains(&DiffLine::added("SITE-A-SW-2: match ip address prefix-list ISP-Out"))
     );
     assert_eq!(
         findings[0].fields,
         [Field::new("Lines", "9", "9"), Field::new("Differing lines", "1", "1")]
     );
     assert_eq!(findings[0].evidence, "show route-map");
+}
+
+#[test]
+fn route_map_preference_tuning_is_not_a_divergence() {
+    // How a pair biases traffic toward one member is the design, not a
+    // defect. SW-2 is the backup: it prepends its own AS twice where SW-1
+    // does not prepend at all, sets a lower local-preference, and labels its
+    // clauses "Path 2". Comparing the two members line by line reports every
+    // one of those as a divergence, which on a real MLAG pair buries the
+    // findings that matter under two dozen that do not.
+    let pair = pair("SITE-A-SW-1", "SITE-A-SW-2");
+    let sw1 = capture(None, Some(&ROUTE_MAP), None);
+    let sw2 = capture(
+        None,
+        Some(&[
+            "route-map ISP-OUT permit 10",
+            "  Description:",
+            "    description transit out - Path 2",
+            "  Match clauses:",
+            "    match ip address prefix-list ISP-OUT",
+            "  Match clauses hit: 51",
+            "  Set clauses:",
+            "    set community 64500:200",
+            "    set as-path prepend 64500 64500",
+            "    set local-preference 150",
+            "route-map ISP-OUT deny 20",
+            "  Match clauses:",
+            "  Set clauses:",
+        ]),
+        None,
+    );
+
+    assert!(pair_findings(&pair, &sw1, &sw2, None, None).is_empty());
+}
+
+#[test]
+fn route_map_next_hop_still_diverges_despite_tuning() {
+    // Tuning is set aside; where the traffic goes is not.
+    let pair = pair("SITE-A-SW-1", "SITE-A-SW-2");
+    let sw1 = capture(None, Some(&ROUTE_MAP), None);
+    let changed: Vec<String> = ROUTE_MAP
+        .iter()
+        .map(|line| line.replace("    set community 64500:100", "    set ip next-hop 192.0.2.9"))
+        .collect();
+    let changed: Vec<&str> = changed.iter().map(String::as_str).collect();
+    let sw2 = capture(None, Some(&changed), None);
+
+    let findings = pair_findings(&pair, &sw1, &sw2, None, None);
+
+    assert_eq!(titles(&findings), ["Pair Route-Map Divergence"]);
+    assert!(
+        findings[0]
+            .detail
+            .contains(&DiffLine::added("SITE-A-SW-2: set ip next-hop 192.0.2.9"))
+    );
+}
+
+#[test]
+fn ha_group_label_does_not_desynchronize_every_key() {
+    // A PAN-OS HA group header carries an optional local label. One member
+    // prints "Group 1:" and the other "Group 1: MMP-E-HA" - the label is a
+    // name an operator typed, not synchronized state. Only the bare form
+    // looks like a block header, so without normalizing it one member's
+    // leaves land under "Group 1/Local Information/Mode" and the other's
+    // under "Local Information/Mode". Every key then differs, and a healthy
+    // pair reports a wall of "Not Present" mismatches.
+    let body = |state: &str| {
+        format!(
+            "  Mode: Active-Passive\n               Local Information:\n                 Version: 1\n                 Mode: Active-Passive\n                 State: {state} (last 30 days)\n                 Version Compatibility:\n                   Application Content Compatibility: Match\n                   IOT Content Compatibility: Match\n"
+        )
+    };
+    let lines = |header: &str, state: &str| {
+        format!("{header}\n{}", body(state))
+            .lines()
+            .map(str::to_string)
+            .collect::<Vec<String>>()
+    };
+
+    let unlabelled = parse_ha_state(&lines("Group 1: ", "active"));
+    let labelled = parse_ha_state(&lines("Group 1: MMP-E-HA", "passive"));
+
+    assert_eq!(unlabelled, labelled);
+    assert!(unlabelled.contains_key("Group 1/Local Information/Mode"));
+}
+
+#[test]
+fn ha_content_mismatch_is_reported_even_when_both_members_agree() {
+    // The pair can disagree with itself while both captures agree. The
+    // firewall grades its own content versions against its peer's, so a stale
+    // file makes BOTH members print "Mismatch". That reads as agreement to a
+    // key-by-key compare and slips through it.
+    let pair = pair("SITE-A-FW-1", "SITE-A-FW-2");
+    let ha = |label: &str, state: &str, iot: &str| {
+        format!(
+            "Group 1: {label}\n               Mode: Active-Passive\n               Local Information:\n                 Mode: Active-Passive\n                 State: {state} (last 30 days)\n                 Version Compatibility:\n                   Application Content Compatibility: Match\n                   IOT Content Compatibility: {iot}\n"
+        )
+    };
+
+    let fw1 = capture(None, None, Some(&ha("", "active", "Mismatch")));
+    let fw2 = capture(None, None, Some(&ha("SITE-A-HA", "passive", "Mismatch")));
+    let findings = pair_findings(&pair, &fw1, &fw2, None, None);
+
+    assert_eq!(titles(&findings), ["Pair HA Content Version Mismatch"]);
+    assert_eq!(
+        findings[0].fields,
+        [Field::new("IOT Content Compatibility", "Mismatch", "Mismatch")]
+    );
+    assert!(findings[0].summary.contains("show system info"));
+
+    let fw1_ok = capture(None, None, Some(&ha("", "active", "Match")));
+    let fw2_ok = capture(None, None, Some(&ha("SITE-A-HA", "passive", "Match")));
+    assert!(pair_findings(&pair, &fw1_ok, &fw2_ok, None, None).is_empty());
 }
 
 #[test]

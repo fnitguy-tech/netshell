@@ -38,6 +38,45 @@ static ROUTE_MAP_HEADER: LazyLock<Regex> =
 static ROUTE_MAP_HIT_LINES: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^\s*(Match|Set)?\s*clauses?\s+hit").unwrap());
 
+/// Route-map lines that bias which member of a pair is preferred, rather
+/// than deciding which routes match or where they go. A redundant pair is
+/// deliberately asymmetric in exactly these, so they are dropped before the
+/// two members are compared.
+///
+/// Their *absence* is a setting too: the preferred member of a pair has no
+/// prepend line at all where the backup has `set as-path prepend 4280000001`,
+/// so masking the value is not enough - the line has to go. Clause 30 of one
+/// fleet's EACN-OUT is that case, and it read as 22 lines against 23.
+///
+/// What stays is everything that decides reachability: the clause headers and
+/// their permit/deny, every match line, `set ip next-hop`, `set origin`. Those
+/// must agree, because a peer that lands on either member has to be offered
+/// and accept the same routes.
+static ROUTE_MAP_TUNING: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"(?ix)^(
+              description
+            | set \s+ as-path \s+ prepend
+            | set \s+ local-preference
+            | set \s+ metric
+            | set \s+ (ext)?community
+            | set \s+ weight
+        )\b",
+    )
+    .unwrap()
+});
+
+/// A PAN-OS HA group header, with or without the group's local label.
+static HA_GROUP_HEADER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^Group\s+\d+$").unwrap());
+
+/// A route-map body with the per-member preference tuning dropped.
+fn canonical_route_map(body: &[String]) -> Vec<&str> {
+    body.iter()
+        .map(|line| line.trim())
+        .filter(|line| !ROUTE_MAP_TUNING.is_match(line))
+        .collect()
+}
+
 /// PAN-OS "show high-availability state" keys that differ between the
 /// two members of a healthy pair by design (one is active, one
 /// passive; each has its own addresses, serial and timers). Everything
@@ -216,6 +255,20 @@ pub fn parse_ha_state(lines: &[String]) -> IndexMap<String, String> {
 
         if lower.starts_with("peer information") {
             break;
+        }
+
+        // "Group 1:" on one member and "Group 1: MMP-E-HA" on the other are
+        // the same block, but only the bare form looks like a block header to
+        // the rule below, so one member's leaves land under "Group 1/Local
+        // Information/Mode" and the other's under "Local Information/Mode".
+        // Every key then differs and a synchronized pair reads as 26
+        // mismatches. The label is a local name an operator typed, not
+        // synchronized state - one fleet's four firewalls carry "",
+        // "MMP-E-HA", "MMP-W-FW1" and "MMP-W-BU" - so treat the line as a
+        // header either way and drop the label.
+        if HA_GROUP_HEADER.is_match(key) {
+            stack.push((indent, key.to_string()));
+            continue;
         }
 
         if value.is_empty() {
@@ -397,6 +450,19 @@ pub fn pair_findings(
             continue;
         }
 
+        // A redundant pair is deliberately asymmetric: you make one member
+        // preferred by prepending your own AS more times on it, by setting a
+        // lower local-preference, and you label the result "Path 1".."Path 4".
+        // Those differences are the design, not a defect, and on one fleet
+        // they accounted for 25 of 30 findings - enough noise to bury the 5
+        // that mattered. Compare the bodies with the tuning dropped: if they
+        // match once the knob settings are set aside, there is nothing to
+        // report. Anything that changes which routes match, or where they go,
+        // still differs and still fires.
+        if canonical_route_map(body_a) == canonical_route_map(body_b) {
+            continue;
+        }
+
         let detail = differing_lines(a, body_a, b, body_b);
         let removed = detail.iter().filter(|line| line.kind == DiffKind::Removed).count();
         let added = detail.len() - removed;
@@ -451,6 +517,53 @@ pub fn pair_findings(
                  values such as State and Priority are ignored). A version, sync or cookie mismatch means one \
                  member did not receive what the other did."
                     .to_string(),
+                HA_COMMAND,
+            ));
+        }
+
+        // The firewall grades its own content versions against its peer's and
+        // reports the verdict. Both members print the same verdict, so a
+        // Mismatch reads as agreement to the key-by-key compare above and
+        // slips through it - it needs asking for directly.
+        let mismatched: BTreeSet<&String> = ha_a
+            .keys()
+            .chain(ha_b.keys())
+            .filter(|key| {
+                key.to_lowercase().contains("compatibility")
+                    && [ha_a.get(*key), ha_b.get(*key)]
+                        .iter()
+                        .flatten()
+                        .any(|value| value.to_lowercase().contains("mismatch"))
+            })
+            .collect();
+
+        if !mismatched.is_empty() {
+            let not_present = || "Not Present".to_string();
+            let fields = mismatched
+                .iter()
+                .map(|key| {
+                    Field::new(
+                        key.rsplit('/').next().unwrap_or(key),
+                        ha_a.get(*key).cloned().unwrap_or_else(not_present),
+                        ha_b.get(*key).cloned().unwrap_or_else(not_present),
+                    )
+                })
+                .collect();
+            findings.push(pair_finding(
+                Classification::Protocol,
+                "Pair HA Content Version Mismatch",
+                pair,
+                vec!["high-availability".to_string()],
+                fields,
+                format!(
+                    "The pair reports {} content version(s) as Mismatch between the two members. Both members \
+                     print the same verdict, so this is the pair disagreeing with itself rather than one capture \
+                     differing from the other. A content version that differs across the pair means policy that \
+                     depends on it - an application, a threat signature, an IoT device profile - can evaluate \
+                     differently after a failover than before it. Compare 'show system info' on both members to \
+                     find which file is behind, then push that update to the member that is stale.",
+                    mismatched.len()
+                ),
                 HA_COMMAND,
             ));
         }

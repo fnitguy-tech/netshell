@@ -485,6 +485,7 @@ details .diff-box {
         <a class="card clickable" href="#device-findings"><div class="label">Devices With Findings</div><div class="value">2</div></a>
         <a class="card clickable" href="#device-findings"><div class="label">Changed</div><div class="value">6</div></a>
         <a class="card clickable" href="#attention-items"><div class="label">Attention</div><div class="value health-attention">1</div></a>
+        <a class="card clickable" href="#attention-items"><div class="label">Pair Symmetry</div><div class="value">0</div></a>
     </div>
 
     <div class="outcome-card">
@@ -500,7 +501,7 @@ details .diff-box {
 
 <li>9 configuration finding/evidence item(s) detected.</li>
 <li>4 protocol finding/evidence item(s) detected.</li>
-<li>3 routing finding/evidence item(s) detected.</li>
+<li>2 routing finding/evidence item(s) detected.</li>
 <li>1 interface finding/evidence item(s) detected.</li>
 <li>2 layer 2 finding/evidence item(s) detected.</li>
 <li>1 evidence only finding/evidence item(s) detected.</li>
@@ -846,7 +847,7 @@ details .diff-box {
     <div id="device-site-a-fw-1" class="device">
         <div class="device-header">
             <div class="device-name">SITE-A-FW-1.txt</div>
-            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 2</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 1</div>
         </div>
 
         <div class="section">
@@ -879,21 +880,6 @@ details .diff-box {
 <div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR destination 10.20.0.50</div>
 <div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR application [ snmp ]</div>
 <div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR action allow</div>
-
-                </div>
-            </details>
-
-
-            <details>
-                <summary>show routing route - Large routing evidence</summary>
-                <div class="diff-box">
-
-<div class="removed">- 0.0.0.0/0                                   10.10.200.2                             10     A S        5266  ethernet1/1</div>
-<div class="added">+ 0.0.0.0/0                                   10.10.200.2                             10     A S        5288  ethernet1/1</div>
-<div class="removed">- 10.10.200.0/24                              10.10.200.254                           0      A C        5266  ethernet1/1</div>
-<div class="added">+ 10.10.200.0/24                              10.10.200.254                           0      A C        5288  ethernet1/1</div>
-<div class="removed">- 10.20.0.0/16                                10.20.0.1                               0      A C        5266  ethernet1/2</div>
-<div class="added">+ 10.20.0.0/16                                10.20.0.1                               0      A C        5288  ethernet1/2</div>
 
                 </div>
             </details>
@@ -937,7 +923,7 @@ details .diff-box {
 </div>
 
 <div class="footer">
-    Generated 2026-10-02 16:47:40 | Maintenance Report
+    Generated 2026-10-02 18:57:44 | Maintenance Report
 </div>
 
 <script>
@@ -945,7 +931,7 @@ const healthLabels = ["Stable", "Changed", "Attention", "Action Required"];
 const healthValues = [2, 6, 1, 0];
 
 const categoryLabels = ["Configuration", "Protocol", "Routing", "Interface", "Layer 2", "Firewall", "System", "Evidence only"];
-const categoryValues = [9, 4, 3, 1, 2, 0, 0, 1];
+const categoryValues = [9, 4, 2, 1, 2, 0, 0, 1];
 
 const deviceLabels = ["SITE-A-SW-1", "SITE-A-SW-2", "SITE-A-FW-1", "SITE-B-SW-1"];
 const deviceImpact = [22, 1, 0, 0];

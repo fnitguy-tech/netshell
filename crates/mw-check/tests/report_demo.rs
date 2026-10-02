@@ -205,13 +205,10 @@ fn demo_analysis() -> Analysis {
         "SITE-A-FW-1",
         vec![],
         vec![],
-        diffs(
-            "site-a-fw-1",
-            &[
-                ("show config running", "show config running"),
-                ("show routing route", "show routing route - Large routing evidence"),
-            ],
-        ),
+        // No "show routing route" section: the demo's PAN-OS routes are
+        // identical apart from the age column, which is normalized away, so
+        // there is no evidence block to render.
+        diffs("site-a-fw-1", &[("show config running", "show config running")]),
         (0, 0, 0),
     );
 
@@ -221,7 +218,7 @@ fn demo_analysis() -> Analysis {
     for (classification, count) in [
         (Classification::Configuration, 9),
         (Classification::Protocol, 4),
-        (Classification::Routing, 3),
+        (Classification::Routing, 2),
         (Classification::Interface, 1),
         (Classification::Layer2, 2),
         (Classification::EvidenceOnly, 1),
@@ -233,6 +230,9 @@ fn demo_analysis() -> Analysis {
     impact_totals.add(Impact::Stable, 2);
     impact_totals.add(Impact::Changed, 6);
     impact_totals.add(Impact::Attention, 1);
+
+    // The demo has no pair-symmetry findings, so the window carries all of it.
+    let window_totals = impact_totals.clone();
 
     Analysis {
         common_files: ["SITE-A-FW-1", "SITE-A-SW-1", "SITE-A-SW-2", "SITE-B-SW-1"]
@@ -251,6 +251,8 @@ fn demo_analysis() -> Analysis {
         },
         total_findings_by_classification: by_classification,
         impact_totals,
+        window_totals,
+        symmetry_totals: ImpactCounts::default(),
         devices_with_findings: 2,
     }
 }
