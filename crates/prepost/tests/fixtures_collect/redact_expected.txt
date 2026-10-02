@@ -1,0 +1,1002 @@
+hostname SITE-A-SW-1
+!
+username admin privilege 15 role network-admin secret sha512 <REDACTED>
+username ops secret 0 <REDACTED>
+username svc ssh-key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7 svc@host
+enable password sha512 <REDACTED>
+!
+tacacs-server host 10.1.1.1 key 7 <REDACTED>
+tacacs-server key <REDACTED>
+radius-server host 10.1.1.2 key 7 <REDACTED>
+!
+snmp-server community <REDACTED> ro
+snmp-server user bob grp v3 localized 0x80001f auth sha <REDACTED> priv aes <REDACTED>
+!
+ntp authentication-key 1 md5 7 <REDACTED>
+!
+key chain KC
+   key 1
+      key-string 7 <REDACTED>
+!
+interface Ethernet1
+   description password reset server
+   ip ospf authentication-key 7 <REDACTED>
+   ip ospf message-digest-key 1 md7 <REDACTED>
+!
+interface Tunnel1
+   tunnel key 1234
+!
+router bgp 65000
+   neighbor 10.0.0.1 password 7 <REDACTED>
+   neighbor 10.0.0.2 remote-as 65000
+set mgt-config users admin phash <REDACTED>
+set mgt-config password-complexity enabled yes
+set network ike gateway GW authentication pre-shared-key key <REDACTED>
+set shared server-profile radius RAD server S1 secret <REDACTED>
+set shared server-profile ldap L bind-password <REDACTED>
+set shared certificate C private-key <REDACTED>
+set shared certificate C public-key -AB==keepme
+set deviceconfig system snmp-setting access-setting version v2c snmp-community-string <REDACTED>
+set deviceconfig system snmp-setting access-setting version v3 users U authpwd <REDACTED> privpwd <REDACTED>
+set network virtual-router default protocol bgp auth-profile AP secret <REDACTED>
+username ops secret sha512 <REDACTED>
+enable secret <REDACTED>
+secret 7 <REDACTED>
+secret 7 7 x
+radius-server host 10.1.1.2 key 7 <REDACTED> auth-port 1812 key <REDACTED>
+tacacs-server host 10.1.1.1 key 7 <REDACTED>
+tacacs-server key <REDACTED> retransmit 3
+set shared x passphrase <REDACTED> rest
+set shared x passphrase <REDACTED> rest
+   DESCRIPTION secret 0 keepme <REDACTED>
+comment password 5 x
+banner motd secret 0 x
+ key 0
+ key 0 <REDACTED>
+ isakmp key 0 <REDACTED> address 1.2.3.4
+ authentication text plaintext
+ crypto isakmp key 6 <REDACTED> address 1.2.3.4
+ ip ospf message-digest-key 1 md5 7 <REDACTED>
+ ip ospf message-digest-key 1 sha256 <REDACTED>
+ ntp authentication-key 10 md5 0 <REDACTED>
+ snmp-server user bob grp v3 auth sha256 <REDACTED> priv aes256 <REDACTED>
+ bind-password 0 <REDACTED>
+ bind-secret <REDACTED>
+ password sha512 <REDACTED> extra
+ enable password 0 <REDACTED>
+ secret <REDACTED> secret
+ bcrypt <REDACTED>
+ <REDACTED>
+ $9$abc
+ key <REDACTED> trailing <REDACTED>
+ phash <REDACTED>
+ secret <REDACTED>
+ api-key <REDACTED> extra
+ secret  <REDACTED>  spaces
+unicode secret 0 <REDACTED> ещё
+tab	secret	0	<REDACTED>	rest
+Hostname: SITE-A-FW-1
+IP Address: 10.10.200.254
+Generated: 2026-04-14 10:42:51.117760
+================================================================================
+
+
+### show system info ###
+--------------------------------------------------------------------------------
+hostname: SITE-A-FW-1
+ip-address: 10.10.200.254
+netmask: 255.255.255.0
+default-gateway: 10.10.200.2
+mac-address: 00:1b:17:00:00:10
+time: Tue Apr 14 10:43:02 2026
+uptime: 61 days, 5:12:44
+family: 400
+model: PA-440
+serial: 000000000001
+sw-version: 11.1.4-h7
+app-version: 8960-9200
+threat-version: 8960-9200
+url-filtering-version: 20260414.20120
+multi-vsys: off
+operational-mode: normal
+
+
+
+### show high-availability state ###
+--------------------------------------------------------------------------------
+Mode: Active-Passive
+Local Information:
+        State: active
+        Priority: 100
+Peer Information:
+        Connection status: up
+        State: passive
+        Priority: 110
+
+
+
+### show routing route ###
+--------------------------------------------------------------------------------
+flags: A:active, ?:loose, C:connect, H:host, S:static, ~:internal, R:rip, O:ospf, B:bgp, Oi:ospf intra-area, Oo:ospf inter-area, O1:ospf ext-type-1, O2:ospf ext-type-2, E:ecmp, M:multicast
+
+VIRTUAL ROUTER: default (id 1)
+  ==========
+destination                                 nexthop                                 metric flags      age   interface          next-AS
+0.0.0.0/0                                   10.10.200.2                             10     A S        5288  ethernet1/1
+10.10.200.0/24                              10.10.200.254                           0      A C        5288  ethernet1/1
+10.20.0.0/16                                10.20.0.1                               0      A C        5288  ethernet1/2
+total routes shown: 3
+
+
+
+### set cli config-output-format set ###
+--------------------------------------------------------------------------------
+
+
+
+
+### show config running ###
+--------------------------------------------------------------------------------
+set deviceconfig system hostname SITE-A-FW-1
+set deviceconfig system ip-address 10.10.200.254
+set deviceconfig system netmask 255.255.255.0
+set deviceconfig system default-gateway 10.10.200.2
+set network interface ethernet ethernet1/1 layer3 ip 10.10.200.254/24
+set network interface ethernet ethernet1/2 layer3 ip 10.20.0.1/16
+set zone outside network layer3 ethernet1/1
+set zone inside network layer3 ethernet1/2
+set rulebase security rules INSIDE-TO-OUTSIDE from inside
+set rulebase security rules INSIDE-TO-OUTSIDE to outside
+set rulebase security rules INSIDE-TO-OUTSIDE source any
+set rulebase security rules INSIDE-TO-OUTSIDE destination any
+set rulebase security rules INSIDE-TO-OUTSIDE application [ web-browsing ssl dns ]
+set rulebase security rules INSIDE-TO-OUTSIDE action allow
+set rulebase security rules ISP-B-BGP-MONITOR from outside
+set rulebase security rules ISP-B-BGP-MONITOR to inside
+set rulebase security rules ISP-B-BGP-MONITOR source 198.51.100.9
+set rulebase security rules ISP-B-BGP-MONITOR destination 10.20.0.50
+set rulebase security rules ISP-B-BGP-MONITOR application [ snmp ]
+set rulebase security rules ISP-B-BGP-MONITOR action allow
+set rulebase security rules DENY-ALL from any
+set rulebase security rules DENY-ALL to any
+set rulebase security rules DENY-ALL action deny
+
+Hostname: SITE-A-SW-1
+IP Address: 192.0.2.1
+Generated: 2026-04-14 10:42:51.117760
+================================================================================
+
+
+### show ip interface brief ###
+--------------------------------------------------------------------------------
+                                                                              Address
+Interface         IP Address           Status       Protocol           MTU    Owner
+----------------- -------------------- ------------ -------------- ---------- -------
+Ethernet49/1      198.51.100.2/30      down         down               1500
+Ethernet50/1      198.51.100.10/30     up           up                 1500
+Loopback0         192.0.2.1/32         up           up                65535
+Vlan200           10.10.200.2/24       up           up                 1500
+Vlan4000          10.0.0.1/30          up           up                 1500
+
+
+
+### show vlan brief ###
+--------------------------------------------------------------------------------
+VLAN  Name                             Status    Ports
+----- -------------------------------- --------- -------------------------------
+1     default                          active    Et1, Et2, Et3, Et4
+200   USERS                            active    Et1, Et2, Po1
+210   SERVERS                          active    Po1
+4000  IBGP-XLINK                       active    Et47/1
+240   ISP-B-TRANSIT                    active    Et50/1
+
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et2        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et47/1     to SITE-A-SW-2     connected    4000     full   10G    10GBASE-SR
+Et49/1     ISP-A uplink       disabled     routed   full   10G    10GBASE-LR
+Et50/1     ISP-B uplink       connected    routed   full   10G    10GBASE-LR
+Po1        to SERVER-AGG      connected    trunk    full   20G    N/A
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.2       1        default  1   FULL/BDR               00:00:31    10.0.0.2        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.1, local AS number 64500
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  ISP-A             198.51.100.1     4 64496          48377     48102    0    0   00:01:12 Idle(Admin)
+  ISP-B             198.51.100.9     4 64497            213       201    0    0   00:52:40 Estab   815    815
+  SITE-A-SW-2       10.0.0.2         4 64500          61402     61399    0    0   34d11h   Estab   3      3
+
+
+
+### show ip route ###
+--------------------------------------------------------------------------------
+VRF: default
+Codes: C - connected, S - static, K - kernel,
+       O - OSPF, O3 - OSPFv3, B - Other BGP Routes, B I - iBGP, B E - eBGP,
+       L - local, I L1 - IS-IS level 1, I L2 - IS-IS level 2
+
+Gateway of last resort:
+ B E      0.0.0.0/0 [20/0] via 198.51.100.9, Ethernet50/1
+
+ C        10.0.0.0/30 is directly connected, Vlan4000
+ C        10.10.200.0/24 is directly connected, Vlan200
+ B I      10.20.0.0/16 [200/0] via 10.0.0.2, Vlan4000
+ C        192.0.2.1/32 is directly connected, Loopback0
+ O        192.0.2.2/32 [110/20] via 10.0.0.2, Vlan4000
+ C        198.51.100.8/30 is directly connected, Ethernet50/1
+ B E      203.0.113.0/24 [20/0] via 198.51.100.9, Ethernet50/1
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-A-SW-1 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-A-SW-1
+!
+vlan 200
+   name USERS
+!
+vlan 210
+   name SERVERS
+!
+vlan 240
+   name ISP-B-TRANSIT
+!
+vlan 4000
+   name IBGP-XLINK
+!
+interface Ethernet47/1
+   description to SITE-A-SW-2
+   switchport mode trunk
+!
+interface Ethernet49/1
+   description ISP-A uplink
+   no switchport
+   ip address 198.51.100.2/30
+   shutdown
+!
+interface Ethernet50/1
+   description ISP-B uplink
+   no switchport
+   ip address 198.51.100.10/30
+!
+interface Loopback0
+   ip address 192.0.2.1/32
+!
+interface Vlan4000
+   ip address 10.0.0.1/30
+!
+ip routing
+!
+router bgp 64500
+   router-id 192.0.2.1
+   neighbor 10.0.0.2 remote-as 64500
+   neighbor 10.0.0.2 description SITE-A-SW-2
+   neighbor 10.0.0.2 next-hop-self
+   neighbor 198.51.100.1 remote-as 64496
+   neighbor 198.51.100.1 description ISP-A
+   neighbor 198.51.100.1 route-map ISP-IN in
+   neighbor 198.51.100.1 shutdown
+   neighbor 198.51.100.9 remote-as 64497
+   neighbor 198.51.100.9 description ISP-B
+   neighbor 198.51.100.9 route-map ISP-IN in
+   network 10.10.200.0/24
+!
+router ospf 1
+   router-id 192.0.2.1
+   network 10.0.0.0/30 area 0.0.0.0
+   network 192.0.2.1/32 area 0.0.0.0
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000001
+Hardware MAC address: 001c.7300.0001
+System MAC address: 001c.7300.0001
+
+Software image version: 4.32.2F
+Architecture: x86_64
+Internal build version: 4.32.2F-38195967.4322F
+Internal build ID: 3c3a6a07-bd54-4a8f-8f2b-3a2f3b2f0001
+Image format version: 3.0
+Image optimization: Default
+
+Uptime: 21 days, 6 hours and 14 minutes
+Total memory: 8099732 kB
+Free memory: 5817204 kB
+
+
+
+### show interfaces transceiver ###
+--------------------------------------------------------------------------------
+Port       Temp   Voltage    Bias      Optical   Optical
+                (C)       (V)      (mA)     Tx (mW)   Rx (mW)
+Et49/1     36.2   3.28   32.1   0.5771   0.0001
+Et50/1     35.4   3.29   31.9   0.5820   0.5904
+
+Hostname: SITE-A-SW-2
+IP Address: 192.0.2.2
+Generated: 2026-04-14 10:42:51.117760
+================================================================================
+
+
+### show ip interface brief ###
+--------------------------------------------------------------------------------
+                                                                              Address
+Interface         IP Address           Status       Protocol           MTU    Owner
+----------------- -------------------- ------------ -------------- ---------- -------
+Loopback0         192.0.2.2/32         up           up                65535
+Vlan200           10.10.200.3/24       up           up                 1500
+Vlan4000          10.0.0.2/30          up           up                 1500
+
+
+
+### show vlan brief ###
+--------------------------------------------------------------------------------
+VLAN  Name                             Status    Ports
+----- -------------------------------- --------- -------------------------------
+1     default                          active    Et1, Et2, Et3, Et4
+200   USERS                            active    Et1, Et2, Po1
+210   SERVERS                          active    Po1
+4000  IBGP-XLINK                       active    Et47/1
+240   ISP-B-TRANSIT                    active    
+
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et2        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et47/1     to SITE-A-SW-1     connected    4000     full   10G    10GBASE-SR
+Po1        to SERVER-AGG      connected    trunk    full   20G    N/A
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.1       1        default  1   FULL/DR                00:00:33    10.0.0.1        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.2, local AS number 64500
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  SITE-A-SW-1       10.0.0.1         4 64500          61399     61402    0    0   34d11h   Estab   815    815
+
+
+
+### show ip route ###
+--------------------------------------------------------------------------------
+VRF: default
+Codes: C - connected, S - static, K - kernel,
+       O - OSPF, O3 - OSPFv3, B - Other BGP Routes, B I - iBGP, B E - eBGP,
+       L - local, I L1 - IS-IS level 1, I L2 - IS-IS level 2
+
+Gateway of last resort:
+ B I      0.0.0.0/0 [200/0] via 10.0.0.1, Vlan4000
+
+ C        10.0.0.0/30 is directly connected, Vlan4000
+ C        10.10.200.0/24 is directly connected, Vlan200
+ S        10.20.0.0/16 [1/0] via 10.10.200.254, Vlan200
+ O        192.0.2.1/32 [110/20] via 10.0.0.1, Vlan4000
+ C        192.0.2.2/32 is directly connected, Loopback0
+ B I      203.0.113.0/24 [200/0] via 10.0.0.1, Vlan4000
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-A-SW-2 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-A-SW-2
+!
+vlan 200
+   name USERS
+!
+vlan 210
+   name SERVERS
+!
+vlan 240
+   name ISP-B-TRANSIT
+!
+vlan 4000
+   name IBGP-XLINK
+!
+interface Ethernet47/1
+   description to SITE-A-SW-1
+   switchport mode trunk
+!
+interface Loopback0
+   ip address 192.0.2.2/32
+!
+interface Vlan4000
+   ip address 10.0.0.2/30
+!
+ip routing
+!
+ip route 10.20.0.0/16 10.10.200.254
+!
+router bgp 64500
+   router-id 192.0.2.2
+   neighbor 10.0.0.1 remote-as 64500
+   neighbor 10.0.0.1 description SITE-A-SW-1
+   network 10.20.0.0/16
+!
+router ospf 1
+   router-id 192.0.2.2
+   network 10.0.0.0/30 area 0.0.0.0
+   network 192.0.2.2/32 area 0.0.0.0
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000002
+Hardware MAC address: 001c.7300.0002
+System MAC address: 001c.7300.0002
+
+Software image version: 4.32.2F
+Architecture: x86_64
+Internal build version: 4.32.2F-38195967.4322F
+Internal build ID: 3c3a6a07-bd54-4a8f-8f2b-3a2f3b2f0001
+Image format version: 3.0
+Image optimization: Default
+
+Uptime: 34 days, 13 hours and 2 minutes
+Total memory: 8099732 kB
+Free memory: 5790112 kB
+
+Hostname: SITE-B-SW-1
+IP Address: 192.0.2.11
+Generated: 2026-04-14 10:42:51.117760
+================================================================================
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et49/1     ISP-C uplink       connected    routed   full   10G    10GBASE-LR
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.12      1        default  1   FULL/BDR               00:00:36    10.0.1.2        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.11, local AS number 64501
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  ISP-C             198.51.100.17    4 64498          90214     89877    0    0   88d02h   Estab   804    804
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-B-SW-1 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-B-SW-1
+!
+vlan 200
+   name USERS
+!
+interface Ethernet49/1
+   description ISP-C uplink
+   no switchport
+   ip address 198.51.100.18/30
+!
+interface Loopback0
+   ip address 192.0.2.11/32
+!
+ip routing
+!
+router bgp 64501
+   router-id 192.0.2.11
+   neighbor 198.51.100.17 remote-as 64498
+   neighbor 198.51.100.17 description ISP-C
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000011
+Software image version: 4.32.2F
+Architecture: x86_64
+
+Uptime: 88 days, 4 hours and 41 minutes
+Total memory: 8099732 kB
+Free memory: 5901004 kB
+
+Hostname: SITE-A-FW-1
+IP Address: 10.10.200.254
+Generated: 2026-04-14 08:48:13.402118
+================================================================================
+
+
+### show system info ###
+--------------------------------------------------------------------------------
+hostname: SITE-A-FW-1
+ip-address: 10.10.200.254
+netmask: 255.255.255.0
+default-gateway: 10.10.200.2
+mac-address: 00:1b:17:00:00:10
+time: Tue Apr 14 08:48:40 2026
+uptime: 61 days, 3:18:22
+family: 400
+model: PA-440
+serial: 000000000001
+sw-version: 11.1.4-h7
+app-version: 8960-9200
+threat-version: 8960-9200
+url-filtering-version: 20260414.20080
+multi-vsys: off
+operational-mode: normal
+
+
+
+### show high-availability state ###
+--------------------------------------------------------------------------------
+Mode: Active-Passive
+Local Information:
+        State: active
+        Priority: 100
+Peer Information:
+        Connection status: up
+        State: passive
+        Priority: 110
+
+
+
+### show routing route ###
+--------------------------------------------------------------------------------
+flags: A:active, ?:loose, C:connect, H:host, S:static, ~:internal, R:rip, O:ospf, B:bgp, Oi:ospf intra-area, Oo:ospf inter-area, O1:ospf ext-type-1, O2:ospf ext-type-2, E:ecmp, M:multicast
+
+VIRTUAL ROUTER: default (id 1)
+  ==========
+destination                                 nexthop                                 metric flags      age   interface          next-AS
+0.0.0.0/0                                   10.10.200.2                             10     A S        5266  ethernet1/1
+10.10.200.0/24                              10.10.200.254                           0      A C        5266  ethernet1/1
+10.20.0.0/16                                10.20.0.1                               0      A C        5266  ethernet1/2
+total routes shown: 3
+
+
+
+### set cli config-output-format set ###
+--------------------------------------------------------------------------------
+
+
+
+
+### show config running ###
+--------------------------------------------------------------------------------
+set deviceconfig system hostname SITE-A-FW-1
+set deviceconfig system ip-address 10.10.200.254
+set deviceconfig system netmask 255.255.255.0
+set deviceconfig system default-gateway 10.10.200.2
+set network interface ethernet ethernet1/1 layer3 ip 10.10.200.254/24
+set network interface ethernet ethernet1/2 layer3 ip 10.20.0.1/16
+set zone outside network layer3 ethernet1/1
+set zone inside network layer3 ethernet1/2
+set rulebase security rules INSIDE-TO-OUTSIDE from inside
+set rulebase security rules INSIDE-TO-OUTSIDE to outside
+set rulebase security rules INSIDE-TO-OUTSIDE source any
+set rulebase security rules INSIDE-TO-OUTSIDE destination any
+set rulebase security rules INSIDE-TO-OUTSIDE application [ web-browsing ssl dns ]
+set rulebase security rules INSIDE-TO-OUTSIDE action allow
+set rulebase security rules DENY-ALL from any
+set rulebase security rules DENY-ALL to any
+set rulebase security rules DENY-ALL action deny
+
+Hostname: SITE-A-SW-1
+IP Address: 192.0.2.1
+Generated: 2026-04-14 08:48:13.402118
+================================================================================
+
+
+### show ip interface brief ###
+--------------------------------------------------------------------------------
+                                                                              Address
+Interface         IP Address           Status       Protocol           MTU    Owner
+----------------- -------------------- ------------ -------------- ---------- -------
+Ethernet49/1      198.51.100.2/30      up           up                 1500
+Ethernet50/1      198.51.100.10/30     down         down               1500
+Loopback0         192.0.2.1/32         up           up                65535
+Vlan200           10.10.200.2/24       up           up                 1500
+Vlan4000          10.0.0.1/30          up           up                 1500
+
+
+
+### show vlan brief ###
+--------------------------------------------------------------------------------
+VLAN  Name                             Status    Ports
+----- -------------------------------- --------- -------------------------------
+1     default                          active    Et1, Et2, Et3, Et4
+200   USERS                            active    Et1, Et2, Po1
+210   SERVERS                          active    Po1
+4000  IBGP-XLINK                       active    Et47/1
+
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et2        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et47/1     to SITE-A-SW-2     connected    4000     full   10G    10GBASE-SR
+Et49/1     ISP-A uplink       connected    routed   full   10G    10GBASE-LR
+Et50/1     ISP-B uplink       notconnect   routed   full   10G    10GBASE-LR
+Po1        to SERVER-AGG      connected    trunk    full   20G    N/A
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.2       1        default  1   FULL/BDR               00:00:38    10.0.0.2        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.1, local AS number 64500
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  ISP-A             198.51.100.1     4 64496          48211     47990    0    0   21d04h   Estab   812    812
+  SITE-A-SW-2       10.0.0.2         4 64500          61118     61120    0    0   34d11h   Estab   3      3
+
+
+
+### show ip route ###
+--------------------------------------------------------------------------------
+VRF: default
+Codes: C - connected, S - static, K - kernel,
+       O - OSPF, O3 - OSPFv3, B - Other BGP Routes, B I - iBGP, B E - eBGP,
+       L - local, I L1 - IS-IS level 1, I L2 - IS-IS level 2
+
+Gateway of last resort:
+ B E      0.0.0.0/0 [20/0] via 198.51.100.1, Ethernet49/1
+
+ C        10.0.0.0/30 is directly connected, Vlan4000
+ C        10.10.200.0/24 is directly connected, Vlan200
+ B I      10.20.0.0/16 [200/0] via 10.0.0.2, Vlan4000
+ C        192.0.2.1/32 is directly connected, Loopback0
+ O        192.0.2.2/32 [110/20] via 10.0.0.2, Vlan4000
+ C        198.51.100.0/30 is directly connected, Ethernet49/1
+ B E      203.0.113.0/24 [20/0] via 198.51.100.1, Ethernet49/1
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-A-SW-1 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-A-SW-1
+!
+vlan 200
+   name USERS
+!
+vlan 210
+   name SERVERS
+!
+vlan 4000
+   name IBGP-XLINK
+!
+interface Ethernet47/1
+   description to SITE-A-SW-2
+   switchport mode trunk
+!
+interface Ethernet49/1
+   description ISP-A uplink
+   no switchport
+   ip address 198.51.100.2/30
+!
+interface Ethernet50/1
+   description ISP-B uplink
+   no switchport
+   ip address 198.51.100.10/30
+   shutdown
+!
+interface Loopback0
+   ip address 192.0.2.1/32
+!
+interface Vlan4000
+   ip address 10.0.0.1/30
+!
+ip routing
+!
+router bgp 64500
+   router-id 192.0.2.1
+   neighbor 10.0.0.2 remote-as 64500
+   neighbor 10.0.0.2 description SITE-A-SW-2
+   neighbor 10.0.0.2 next-hop-self
+   neighbor 198.51.100.1 remote-as 64496
+   neighbor 198.51.100.1 description ISP-A
+   neighbor 198.51.100.1 route-map ISP-IN in
+   network 10.10.200.0/24
+!
+router ospf 1
+   router-id 192.0.2.1
+   network 10.0.0.0/30 area 0.0.0.0
+   network 192.0.2.1/32 area 0.0.0.0
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000001
+Hardware MAC address: 001c.7300.0001
+System MAC address: 001c.7300.0001
+
+Software image version: 4.32.2F
+Architecture: x86_64
+Internal build version: 4.32.2F-38195967.4322F
+Internal build ID: 3c3a6a07-bd54-4a8f-8f2b-3a2f3b2f0001
+Image format version: 3.0
+Image optimization: Default
+
+Uptime: 21 days, 4 hours and 20 minutes
+Total memory: 8099732 kB
+Free memory: 5822916 kB
+
+
+
+### show interfaces transceiver ###
+--------------------------------------------------------------------------------
+Port       Temp   Voltage    Bias      Optical   Optical
+                (C)       (V)      (mA)     Tx (mW)   Rx (mW)
+Et49/1     35.9   3.28   31.7   0.5771   0.6102
+Et50/1     34.8   3.29   31.8   0.5820   0.0001
+
+Hostname: SITE-A-SW-2
+IP Address: 192.0.2.2
+Generated: 2026-04-14 08:48:13.402118
+================================================================================
+
+
+### show ip interface brief ###
+--------------------------------------------------------------------------------
+                                                                              Address
+Interface         IP Address           Status       Protocol           MTU    Owner
+----------------- -------------------- ------------ -------------- ---------- -------
+Loopback0         192.0.2.2/32         up           up                65535
+Vlan200           10.10.200.3/24       up           up                 1500
+Vlan4000          10.0.0.2/30          up           up                 1500
+
+
+
+### show vlan brief ###
+--------------------------------------------------------------------------------
+VLAN  Name                             Status    Ports
+----- -------------------------------- --------- -------------------------------
+1     default                          active    Et1, Et2, Et3, Et4
+200   USERS                            active    Et1, Et2, Po1
+210   SERVERS                          active    Po1
+4000  IBGP-XLINK                       active    Et47/1
+
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et2        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et47/1     to SITE-A-SW-1     connected    4000     full   10G    10GBASE-SR
+Po1        to SERVER-AGG      connected    trunk    full   20G    N/A
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.1       1        default  1   FULL/DR                00:00:29    10.0.0.1        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.2, local AS number 64500
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  SITE-A-SW-1       10.0.0.1         4 64500          61120     61118    0    0   34d11h   Estab   812    812
+
+
+
+### show ip route ###
+--------------------------------------------------------------------------------
+VRF: default
+Codes: C - connected, S - static, K - kernel,
+       O - OSPF, O3 - OSPFv3, B - Other BGP Routes, B I - iBGP, B E - eBGP,
+       L - local, I L1 - IS-IS level 1, I L2 - IS-IS level 2
+
+Gateway of last resort:
+ B I      0.0.0.0/0 [200/0] via 10.0.0.1, Vlan4000
+
+ C        10.0.0.0/30 is directly connected, Vlan4000
+ C        10.10.200.0/24 is directly connected, Vlan200
+ S        10.20.0.0/16 [1/0] via 10.10.200.254, Vlan200
+ O        192.0.2.1/32 [110/20] via 10.0.0.1, Vlan4000
+ C        192.0.2.2/32 is directly connected, Loopback0
+ B I      203.0.113.0/24 [200/0] via 10.0.0.1, Vlan4000
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-A-SW-2 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-A-SW-2
+!
+vlan 200
+   name USERS
+!
+vlan 210
+   name SERVERS
+!
+vlan 4000
+   name IBGP-XLINK
+!
+interface Ethernet47/1
+   description to SITE-A-SW-1
+   switchport mode trunk
+!
+interface Loopback0
+   ip address 192.0.2.2/32
+!
+interface Vlan4000
+   ip address 10.0.0.2/30
+!
+ip routing
+!
+ip route 10.20.0.0/16 10.10.200.254
+!
+router bgp 64500
+   router-id 192.0.2.2
+   neighbor 10.0.0.1 remote-as 64500
+   neighbor 10.0.0.1 description SITE-A-SW-1
+   network 10.20.0.0/16
+!
+router ospf 1
+   router-id 192.0.2.2
+   network 10.0.0.0/30 area 0.0.0.0
+   network 192.0.2.2/32 area 0.0.0.0
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000002
+Hardware MAC address: 001c.7300.0002
+System MAC address: 001c.7300.0002
+
+Software image version: 4.32.2F
+Architecture: x86_64
+Internal build version: 4.32.2F-38195967.4322F
+Internal build ID: 3c3a6a07-bd54-4a8f-8f2b-3a2f3b2f0001
+Image format version: 3.0
+Image optimization: Default
+
+Uptime: 34 days, 11 hours and 8 minutes
+Total memory: 8099732 kB
+Free memory: 5793488 kB
+
+Hostname: SITE-B-SW-1
+IP Address: 192.0.2.11
+Generated: 2026-04-14 08:48:13.402118
+================================================================================
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et49/1     ISP-C uplink       connected    routed   full   10G    10GBASE-LR
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.12      1        default  1   FULL/BDR               00:00:30    10.0.1.2        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.11, local AS number 64501
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  ISP-C             198.51.100.17    4 64498          90031     89701    0    0   88d02h   Estab   804    804
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-B-SW-1 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-B-SW-1
+!
+vlan 200
+   name USERS
+!
+interface Ethernet49/1
+   description ISP-C uplink
+   no switchport
+   ip address 198.51.100.18/30
+!
+interface Loopback0
+   ip address 192.0.2.11/32
+!
+ip routing
+!
+router bgp 64501
+   router-id 192.0.2.11
+   neighbor 198.51.100.17 remote-as 64498
+   neighbor 198.51.100.17 description ISP-C
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000011
+Software image version: 4.32.2F
+Architecture: x86_64
+
+Uptime: 88 days, 2 hours and 47 minutes
+Total memory: 8099732 kB
+Free memory: 5903320 kB
+
