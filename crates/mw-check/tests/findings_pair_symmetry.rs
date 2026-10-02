@@ -175,7 +175,7 @@ fn prefix_list_divergence_is_attention_on_both_devices() {
 
     assert_eq!(findings.len(), 1);
     let finding = &findings[0];
-    assert_eq!(finding.title, "Pair Prefix-List Divergence");
+    assert_eq!(finding.title, "Pair Prefix-Lists Differ");
     assert_eq!(finding.impact, Impact::Attention);
     assert_eq!(finding.category, "Pair symmetry");
     assert_eq!(finding.devices, ["SITE-A-SW-1", "SITE-A-SW-2"]);
@@ -207,7 +207,11 @@ fn lists_present_on_one_member_only_are_not_compared_unless_both_had_them() {
     // Both had it before the window and one lost it: that is a finding.
     let findings = pair_findings(&pair, &sw1, &sw2, Some(&sw1), Some(&sw1));
     assert_eq!(titles(&findings), ["Pair Prefix-List Missing On One Device"]);
-    assert!(findings[0].summary.contains("SITE-A-SW-2 no longer has it"));
+    assert!(
+        findings[0]
+            .summary
+            .contains("SITE-A-SW-2 lost prefix-list ISP-OUT during this window")
+    );
     assert_eq!(findings[0].fields, [Field::new("Entries", "3", "Not Present")]);
 }
 
@@ -225,7 +229,7 @@ fn route_map_divergence_lists_the_differing_lines() {
 
     let findings = pair_findings(&pair, &sw1, &sw2, None, None);
 
-    assert_eq!(titles(&findings), ["Pair Route-Map Divergence"]);
+    assert_eq!(titles(&findings), ["Pair Route-Maps Differ"]);
     assert_eq!(findings[0].impact, Impact::Attention);
     assert!(
         findings[0]
@@ -291,7 +295,7 @@ fn route_map_next_hop_still_diverges_despite_tuning() {
 
     let findings = pair_findings(&pair, &sw1, &sw2, None, None);
 
-    assert_eq!(titles(&findings), ["Pair Route-Map Divergence"]);
+    assert_eq!(titles(&findings), ["Pair Route-Maps Differ"]);
     assert!(
         findings[0]
             .detail
@@ -378,7 +382,7 @@ fn ha_cookie_split_is_attention_but_active_passive_is_not() {
     assert_eq!(pair_findings(&pair, &fw1, &fw2_in_sync, None, None), []);
 
     let findings = pair_findings(&pair, &fw1, &fw2_split, None, None);
-    assert_eq!(titles(&findings), ["Pair HA State Divergence"]);
+    assert_eq!(titles(&findings), ["Pair HA State Differs"]);
     assert_eq!(findings[0].classification, Classification::Protocol);
     assert_eq!(
         findings[0].fields,
@@ -419,7 +423,7 @@ fn pair_finding_is_attributed_to_both_devices_beside_their_own_findings() {
     assert_eq!(pairs, [pair("SITE-A-SW-1", "SITE-A-SW-2")]);
 
     let found = pair_findings(&pairs[0], &post_sw1, &post_sw2, Some(&pre_sw1), Some(&pre_sw2));
-    assert_eq!(titles(&found), ["Pair Prefix-List Divergence"]);
+    assert_eq!(titles(&found), ["Pair Prefix-Lists Differ"]);
     assert_eq!(found[0].impact, Impact::Attention);
     // Attributed to both members; the first member counts it in totals.
     assert_eq!(found[0].devices, ["SITE-A-SW-1", "SITE-A-SW-2"]);
@@ -436,7 +440,7 @@ fn pair_finding_is_attributed_to_both_devices_beside_their_own_findings() {
     // SW-2 also has its own per-device overwrite finding; SW-1 only the pair one.
     assert_eq!(prefix_list_findings(&pre_sw1, &post_sw1), []);
     let own = prefix_list_findings(&pre_sw2, &post_sw2);
-    assert_eq!(titles(&own), ["Prefix-List Sequence Overwritten"]);
+    assert_eq!(titles(&own), ["Prefix-List Entry Replaced"]);
     assert_eq!(own[0].impact, Impact::Attention);
     assert_eq!(prefix_list_findings(&pre_sb1, &post_sb1), []);
 }
@@ -455,5 +459,5 @@ fn explicit_pairs_are_compared_where_nothing_would_be_inferred() {
     assert_eq!(pairs, [pair("CORE-EAST", "CORE-WEST")]);
 
     let found = pair_findings(&pairs[0], &post_east, &post_west, Some(&pre_east), Some(&pre_west));
-    assert_eq!(titles(&found), ["Pair Prefix-List Divergence"]);
+    assert_eq!(titles(&found), ["Pair Prefix-Lists Differ"]);
 }

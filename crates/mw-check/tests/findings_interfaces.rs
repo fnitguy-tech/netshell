@@ -184,7 +184,7 @@ fn newly_addressed_interface_that_is_down_is_attention() {
 
     assert_eq!(findings.len(), 1);
     let finding = &findings[0];
-    assert_eq!(finding.title, "Newly Addressed Interface Down");
+    assert_eq!(finding.title, "New Address, Interface Still Down");
     assert_eq!(finding.impact, Impact::Attention);
     assert_eq!(finding.classification, Classification::Interface);
     assert_eq!(finding.category, "Interface address");
@@ -200,7 +200,7 @@ fn newly_addressed_interface_that_is_down_is_attention() {
             .contains(&Field::new("Status", "Not Present", "down down"))
     );
     assert_eq!(finding.evidence, "show ip interface brief");
-    assert!(finding.summary.contains("but is 'down down' in the postcheck"));
+    assert!(finding.summary.contains("reads 'down down' in the postcheck"));
 }
 
 #[test]
@@ -247,7 +247,7 @@ fn panos_newly_addressed_port_down_is_attention_and_tunnel_is_never_rated() {
 
     let subjects: Vec<&str> = findings.iter().map(|f| f.subject[0].as_str()).collect();
     assert_eq!(subjects, ["ethernet1/3"]);
-    assert_eq!(findings[0].title, "Newly Addressed Interface Down");
+    assert_eq!(findings[0].title, "New Address, Interface Still Down");
     assert_eq!(findings[0].evidence, "show interface all");
 
     // tunnel.1 appears with an address only in the postcheck but has no
@@ -285,7 +285,7 @@ fn config_address_with_interfaces_status_fallback() {
     let findings = interface_findings(&pre, &post);
 
     let titles: Vec<&str> = findings.iter().map(|f| f.title.as_str()).collect();
-    assert_eq!(titles, ["Newly Addressed Interface Down"]);
+    assert_eq!(titles, ["New Address, Interface Still Down"]);
     assert_eq!(findings[0].evidence, "running config + show interfaces status");
     assert!(
         findings[0]
@@ -319,7 +319,7 @@ fn down_interface_in_a_full_capture_is_the_attention_finding() {
     let findings = interface_findings(&pre, &post);
 
     assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].title, "Newly Addressed Interface Down");
+    assert_eq!(findings[0].title, "New Address, Interface Still Down");
     assert_eq!(findings[0].impact, Impact::Attention);
     assert_eq!(findings[0].subject, ["Ethernet50/1", "198.51.100.10/30"]);
     assert!(findings[0].summary.contains("198.51.100.10/30"));

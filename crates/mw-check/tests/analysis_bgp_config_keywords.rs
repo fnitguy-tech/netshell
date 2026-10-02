@@ -228,7 +228,7 @@ fn shutdown_and_route_map_evidence() {
     );
 
     let findings = bgp_neighbor_findings(&pre, &post, &bgp_config_changes(&pre, &post), None);
-    assert_eq!(findings[0].title, "BGP Peer Administratively Disabled");
+    assert_eq!(findings[0].title, "BGP Peer Shut Down");
     assert_eq!(
         findings[0].evidence,
         "show ip bgp summary + related BGP shutdown/no shutdown config"

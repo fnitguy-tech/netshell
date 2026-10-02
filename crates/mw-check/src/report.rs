@@ -148,13 +148,9 @@ pub fn overall_health(analysis: &Analysis) -> Impact {
 pub fn assessment_text(health: Impact) -> &'static str {
     match health {
         Impact::Stable => "Nothing changed between the precheck and the postcheck beyond expected churn.",
-        Impact::Changed => "Meaningful changes were detected, but no immediate attention markers were identified.",
-        Impact::Attention => {
-            "Operational changes were detected that should be reviewed. Click the Attention card to jump to items requiring review."
-        }
-        Impact::ActionRequired => {
-            "One or more findings may require action. Click Action Required to jump to the highest-priority items."
-        }
+        Impact::Changed => "Something changed, but nothing needs your attention.",
+        Impact::Attention => "Something changed that you should look at. Click Attention to jump to it.",
+        Impact::ActionRequired => "Something here may need fixing. Click Action Required to jump to it.",
     }
 }
 
@@ -164,16 +160,11 @@ pub fn summary_items(analysis: &Analysis) -> Vec<String> {
         .total_findings_by_classification
         .iter()
         .filter(|(_, count)| *count > 0)
-        .map(|(classification, count)| {
-            format!(
-                "{count} {} finding/evidence item(s) detected.",
-                classification.label().to_lowercase()
-            )
-        })
+        .map(|(classification, count)| format!("{count} {} item(s).", classification.label().to_lowercase()))
         .collect();
 
     if items.is_empty() {
-        items.push("No meaningful findings detected.".to_string());
+        items.push("Nothing worth reporting.".to_string());
     }
 
     if analysis.expectations_in_play {
@@ -273,9 +264,9 @@ pub fn render_html_at(
 
     if symmetry_count > 0 {
         assessment.push_str(&format!(
-            " Separately, {symmetry_count} pair-symmetry finding(s) describe how the two members of a redundant \
-             pair differ from each other right now. They are not changes from this window - they were as true in \
-             the precheck - and they are listed under Pair Symmetry."
+            " Separately, {symmetry_count} pair-symmetry finding(s) say how the two members of a redundant pair \
+             differ from each other right now. This window didn't cause them - they were just as true in the \
+             precheck - so they're listed on their own under Pair Symmetry."
         ));
     }
     let items = summary_items(analysis);
@@ -394,7 +385,7 @@ pub fn render_html_at(
     );
 
     if attention_devices.is_empty() {
-        parts.push("<p class=\"empty\">No attention-level findings detected.</p>".to_string());
+        parts.push("<p class=\"empty\">Nothing needs your attention.</p>".to_string());
     } else {
         parts.push("<div class=\"attention-list\">".to_string());
         for report in &attention_devices {

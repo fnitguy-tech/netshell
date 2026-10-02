@@ -245,7 +245,7 @@ fn matching_delta_is_stable_as_planned() {
     assert!(!findings[0].summary.contains(PREFIX_DELTA_HEDGE));
     assert_eq!(
         findings[0].summary,
-        "Prefix count changed by +3, matching the expectation of a change of +3."
+        "Prefix count changed by +3, which is what you planned for (a change of +3)."
     );
 }
 
@@ -261,7 +261,7 @@ fn matching_absolute_count_by_ip_is_stable_with_note() {
     assert!(
         findings[0]
             .summary
-            .contains("matching the expectation of 815 prefixes received.")
+            .contains("which is what you planned for (815 prefixes received).")
     );
 }
 
@@ -274,7 +274,7 @@ fn delta_that_differs_from_plan_is_attention() {
     assert!(
         findings[0]
             .summary
-            .contains("changed by +2; the expectation was a change of +3")
+            .contains("changed by +2, but you planned for a change of +3")
     );
 }
 
@@ -333,7 +333,7 @@ fn state_change_outranks_the_expectation() {
 
     assert_eq!(
         findings.iter().map(|f| f.title.as_str()).collect::<Vec<_>>(),
-        ["BGP Peer Administratively Disabled"]
+        ["BGP Peer Shut Down"]
     );
 }
 

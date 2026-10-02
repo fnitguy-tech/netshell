@@ -77,10 +77,10 @@ mw demo
 ```
 
 That runs the whole workflow on a bundled fictional four-device uplink
-migration ([scenario](crates/mw-check/fixtures/NET-DEMO/SCENARIO.md)):
-the parallel collector with SSH swapped for a stub that replays the
-bundled captures, the zip packaging, the quick text diff and the HTML
-report, all landing in `reports/NET-DEMO/` under the current directory.
+migration ([scenario](crates/mw-check/fixtures/NET-DEMO/SCENARIO.md)) -
+the parallel collector, the zip packaging, the quick text diff, and the
+HTML report. It all lands in `reports/NET-DEMO/` under the current
+directory. No SSH happens; a stub replays the bundled captures.
 
 ![Terminal: full demo run, precheck through report](docs/img/demo-terminal.png)
 
@@ -90,10 +90,10 @@ reads before leaving the window:
 
 ![Quick text diff: interface status, BGP summary, routes and config changes](docs/img/quick-diff.png)
 
-Note what is *not* in that diff: uptime, BGP message counters, OSPF
-dead timers and optic readings all moved between the two captures, and
-the normalizer dropped every one of them. SITE-B-SW-1, untouched by the
-change, reports "No meaningful changes detected."
+Now notice what *isn't* in that diff. Uptime, BGP message counters, OSPF
+dead timers, and optic readings all moved between the two captures. The
+normalizer dropped every one. SITE-B-SW-1 wasn't touched by the change,
+so it reports "No meaningful changes detected."
 
 ## Run it against your network
 
@@ -108,11 +108,13 @@ mw after NET-123 -r
 mw report NET-123
 ```
 
-The ticket is the first argument; leave it off and you are prompted.
-`-u` gives the SSH username, otherwise it is prompted; the password is
-always prompted, never a flag. Devices are collected five at a time
-with a live progress bar; an unreachable device is logged and recorded
-as a `<host>_FAILED.txt` finding instead of aborting the run.
+The ticket is the first argument. Leave it off and you'll be prompted.
+`-u` gives the SSH username; without it you're prompted for that too.
+The password is always prompted, never a flag.
+
+Devices are read five at a time behind a live progress bar. An
+unreachable one is logged and recorded as a `<host>_FAILED.txt` finding,
+and the run keeps going.
 
 ![Terminal: parallel collection in progress](docs/img/progress-bar.png)
 
@@ -128,29 +130,36 @@ reports/<TICKET>/
 ```
 
 The Python tool's names (`precheck`, `postcheck`, `compare`) still work
-as aliases, and the capture files are the same format, so captures and
-reports from [prepost-check](https://github.com/fnitguy-tech/prepost-check)
-and `mw` can be mixed on one `reports/` tree.
+as aliases. The capture files use the same format too, so you can mix
+captures and reports from
+[prepost-check](https://github.com/fnitguy-tech/prepost-check) and `mw`
+on one `reports/` tree.
 
 ### Keeping passwords out of the evidence
 
-A running-config capture carries every `secret sha512 $6$...`, BGP
-`password 7`, TACACS key, SNMP community and PAN-OS `phash` / `-AQ==`
-value on the device. `-r` replaces each value with `<REDACTED>` before
-the capture is written, so neither the text files, the zip nor the
-reports ever hold it. The keyword and type marker stay
-(`username admin secret sha512 <REDACTED>`), so a credential that was
-added or removed during the window still shows up as a change; only a
-password that was *rotated* is invisible. Use it on both captures. The
-rules are in [`redact.rs`](crates/mw-check/src/redact.rs), one commented
-pattern per line.
+A running-config capture carries every secret on the box: `secret sha512
+$6$...`, BGP `password 7`, TACACS keys, SNMP communities, and PAN-OS
+`phash` / `-AQ==` values.
+
+`-r` turns every one of them into `<REDACTED>` before anything is written
+to disk. The text files, the zip, and the reports never hold the real
+value. Use it on both captures.
+
+The keyword and type marker stay, so you still see
+`username admin secret sha512 <REDACTED>`. That means a credential added
+or removed during the window still shows up as a change. Here's the
+trade-off: a password *rotated* to a new value looks identical before and
+after, so you won't see it.
+
+The rules are in [`redact.rs`](crates/mw-check/src/redact.rs), one
+commented pattern per line.
 
 ## What the report interprets
 
-Raw `show` output diffs are useless on their own: uptimes, ARP timers
-and BGP message counters change every second. Each command has a
-normalization rule that strips expected churn so the diff only shows
-operational change. On top of that, the report understands:
+A raw `show` diff is noise on its own - uptimes, ARP timers, and BGP
+message counters all move every second. Each command gets a normalization
+rule that strips the churn, so what's left is real change. On top of
+that, the report understands:
 
 - **BGP peers.** Summary tables (EOS, IOS, NX-OS) and PAN-OS peer
   blocks are parsed into per-peer state, prefix counts and uptime. A
@@ -177,18 +186,18 @@ operational change. On top of that, the report understands:
 
 ![Health, category and per-device impact charts](docs/img/report-charts.png)
 
-The HTML report is one self-contained file: overall health verdict
-(`Stable / Changed / Attention / Action Required`), per-device impact
-scores, findings with before/after state, category and impact charts,
-and every raw diff behind a collapsible section for evidence. Chart.js
-from a CDN is its only external asset.
+The HTML report is one self-contained file. It carries the health verdict
+(`Stable / Changed / Attention / Action Required`) and a per-device impact
+score. Under that, every finding with its before and after state, the
+category and impact charts, and each raw diff folded into a collapsible
+section. Chart.js from a CDN is its only external asset.
 
 ## Configuring the inventory
 
-`inventory/devices.yml` groups devices by platform. Each platform
-carries its netmiko-style `device_type` and the command list captured
-for it, so adding a device, a command or a platform never means
-touching code:
+`inventory/devices.yml` groups devices by platform. Each platform carries
+its netmiko-style `device_type` and the commands to capture for it. So
+adding a device, a command, or a whole platform never means touching
+code:
 
 ```yaml
 platforms:
@@ -216,10 +225,10 @@ pairs:
   - [EDGE-FW-PRIMARY, EDGE-FW-SECONDARY]
 ```
 
-**Expectations.** A routing change usually has a known effect: "SW-2
-learns three more transit prefixes", "ISP-B sends the full table, 815
-prefixes". Write it in `reports/<TICKET>/expectations.yml` (or pass a
-file with `mw report -e`), one entry per device and peer:
+**Expectations.** You usually know what a routing change should do. "SW-2
+learns three more transit prefixes." "ISP-B sends the full table, 815
+prefixes." Write that down in `reports/<TICKET>/expectations.yml`, or pass
+a file with `mw report -e`. One entry per device and peer:
 
 ```yaml
 ticket: NET-123                  # optional; must match when present
@@ -233,26 +242,26 @@ expectations:
     note: full table minus bogons
 ```
 
-**A per-change inventory.** Copy the parts of `devices.yml` you need
-into a file named for the change and pass it with `-i`. The capture
-then covers only the devices in scope and can carry the commands that
-prove that change.
+**A per-change inventory.** Copy the parts of `devices.yml` you need into
+a file named for the change and pass it with `-i`. The capture then covers
+only the devices in scope, and it can carry the commands that prove that
+one change.
 
 ## netshell, the driver underneath
 
-[`netshell`](crates/netshell/) is the SSH piece on its own: open a
-shell, turn paging off, send `show` commands, get clean output back,
-for the six platforms above. It is what `mw` collects with, and it is
-usable alone as a library or a CLI:
+[`netshell`](crates/netshell/) is the SSH piece on its own. Open a shell,
+turn paging off, send `show` commands, get clean output back - for the
+six platforms above. It's what `mw` collects with, and you can use it
+alone as a library or a CLI:
 
 ```text
 netshell --platform arista_eos --host 192.0.2.11 --username admin "show version" "show ip bgp summary"
 ```
 
-It offers the full algorithm set older devices need (NIST curves,
-SHA-1 group exchange, CBC ciphers) with the modern ones first, tries
-password and keyboard-interactive authentication, escapes a Junos
-root shell with `cli`, and can pin a host key by SHA-256 fingerprint.
+It carries the full algorithm set older devices need - NIST curves,
+SHA-1 group exchange, CBC ciphers - with the modern ones offered first.
+It tries password and keyboard-interactive auth, escapes a Junos root
+shell with `cli`, and can pin a host key by SHA-256 fingerprint.
 
 ## Repository layout
 
@@ -279,21 +288,24 @@ cargo build --release --workspace
 cargo test --workspace
 ```
 
-Pure Rust, so a C compiler is the only thing needed beyond the
-toolchain, and the Windows binary needs no OpenSSL. The 200-odd tests
-run offline: the netshell tests talk to an in-process fake SSH server
-that plays each platform's prompt and paging behaviour, and the mw
-tests check every rule against synthetic captures and the bundled demo
-against the reports the original Python tool produced from it, byte for
-byte.
+Pure Rust. A C compiler is all you need beyond the toolchain, and the
+Windows binary needs no OpenSSL.
+
+The 200-odd tests all run offline. The netshell tests talk to an
+in-process fake SSH server that plays each platform's prompt and paging
+behaviour. The mw tests check every rule against synthetic captures, and
+they check the bundled demo against the report the original Python tool
+produced from it - byte for byte.
 
 ## Status
 
 `mw` has collected from Arista EOS and PAN-OS in production. Cisco
-IOS/NX-OS/IOS-XR and Juniper Junos are tested against the fake server
-only; a prompt or paging quirk on real hardware is a one-line fix in
-`netshell`'s platform profile, so please open an issue with the raw
-output if one bites.
+IOS/NX-OS/IOS-XR and Juniper Junos are only tested against the fake
+server so far.
+
+If a prompt or paging quirk bites you on real hardware, that's a
+one-line fix in `netshell`'s platform profile. Open an issue with the raw
+output and I'll add it.
 
 ## License
 

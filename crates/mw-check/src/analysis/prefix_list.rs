@@ -192,8 +192,8 @@ pub fn prefix_list_findings(pre: &Sections, post: &Sections) -> Vec<Finding> {
                     None,
                     vec![Field::new("Entries", before.len().to_string(), "Not Present")],
                     format!(
-                        "The whole list ({} entries) is gone from the postcheck. Every route it permitted is no \
-                         longer matched; a route-map or neighbor that still references it matches nothing.",
+                        "Anything that still points at this list now matches nothing. All {} entries are gone \
+                         from the postcheck, so every route the list used to permit falls through.",
                         before.len()
                     ),
                     evidence,
@@ -213,8 +213,8 @@ pub fn prefix_list_findings(pre: &Sections, post: &Sections) -> Vec<Finding> {
                     None,
                     vec![Field::new("Entries", "Not Present", after.len().to_string())],
                     format!(
-                        "A new list with {} entries appeared in the postcheck. It changes nothing until a \
-                         route-map or neighbor references it.",
+                        "Nothing changes yet. The postcheck has a new list of {} entries, and it does nothing \
+                         until a route-map or neighbor points at it.",
                         after.len()
                     ),
                     evidence,
@@ -250,13 +250,13 @@ pub fn prefix_list_findings(pre: &Sections, post: &Sections) -> Vec<Finding> {
 
                     findings.push(prefix_list_finding(
                         Impact::Attention,
-                        "Prefix-List Sequence Overwritten",
+                        "Prefix-List Entry Replaced",
                         name,
                         Some(format!("seq {seq}")),
                         entry_fields(Some(seq), Some(seq), Some(rule_before), Some(rule_after)),
                         format!(
-                            "seq {seq} now holds '{rule_after}' instead of '{rule_before}'. Configuring an existing \
-                             sequence number replaces that entry in place rather than adding one. {fate}"
+                            "seq {seq} now holds '{rule_after}' instead of '{rule_before}'. Reusing a sequence \
+                             number replaces that entry instead of adding one, so the old line is gone. {fate}"
                         ),
                         evidence,
                     ));
@@ -265,13 +265,13 @@ pub fn prefix_list_findings(pre: &Sections, post: &Sections) -> Vec<Finding> {
                     if let Some(moved_to) = first_seq_holding(after, rule_before) {
                         findings.push(prefix_list_finding(
                             Impact::Changed,
-                            "Prefix-List Entry Resequenced",
+                            "Prefix-List Entry Moved",
                             name,
                             Some(format!("seq {seq}")),
                             entry_fields(Some(seq), Some(moved_to), Some(rule_before), Some(rule_before)),
                             format!(
-                                "The same entry moved from seq {seq} to seq {moved_to}; what the list matches is \
-                                 unchanged unless the order relative to a deny changed."
+                                "The same entry moved from seq {seq} to seq {moved_to}. The list still matches \
+                                 the same routes, unless this moved it past a deny."
                             ),
                             evidence,
                         ));
@@ -281,20 +281,20 @@ pub fn prefix_list_findings(pre: &Sections, post: &Sections) -> Vec<Finding> {
                             .next()
                             .map_or_else(|| "permit".to_string(), str::to_lowercase);
                         let effect = if action == "permit" {
-                            "If the list is applied outbound this route is no longer advertised; inbound, it is no \
-                             longer accepted."
+                            "Applied outbound, this route isn't advertised any more. Applied inbound, it isn't \
+                             accepted."
                         } else {
-                            "Routes this deny stopped are no longer stopped by it."
+                            "Routes this deny used to stop now get through."
                         };
                         findings.push(prefix_list_finding(
                             Impact::Attention,
-                            "Prefix-List Entry Withdrawn",
+                            "Prefix-List Entry Removed",
                             name,
                             Some(format!("seq {seq}")),
                             entry_fields(Some(seq), None, Some(rule_before), None),
                             format!(
-                                "'{rule_before}' at seq {seq} is gone and is not re-added at another sequence. \
-                                 {effect}"
+                                "'{rule_before}' at seq {seq} is gone, and it doesn't come back at another \
+                                 sequence. {effect}"
                             ),
                             evidence,
                         ));

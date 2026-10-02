@@ -493,18 +493,18 @@ details .diff-box {
         <div class="outcome-grid">
             <div class="outcome-pill">
                 <strong>Assessment</strong>
-                <p>Operational changes were detected that should be reviewed. Click the Attention card to jump to items requiring review.</p>
+                <p>Something changed that you should look at. Click Attention to jump to it.</p>
             </div>
             <div class="outcome-pill">
                 <strong>Detected Categories</strong>
                 <ul class="outcome-list">
 
-<li>9 configuration finding/evidence item(s) detected.</li>
-<li>4 protocol finding/evidence item(s) detected.</li>
-<li>2 routing finding/evidence item(s) detected.</li>
-<li>1 interface finding/evidence item(s) detected.</li>
-<li>2 layer 2 finding/evidence item(s) detected.</li>
-<li>1 evidence only finding/evidence item(s) detected.</li>
+<li>9 configuration item(s).</li>
+<li>4 protocol item(s).</li>
+<li>2 routing item(s).</li>
+<li>1 interface item(s).</li>
+<li>2 layer 2 item(s).</li>
+<li>1 evidence only item(s).</li>
 <li>BGP prefix deltas against the expectations file: 1 as planned, 0 different from plan, 0 unexplained, 0 expected change(s) that did not happen.</li>
 
                 </ul>
@@ -598,7 +598,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">This peer was not present in the precheck but appeared in the postcheck BGP summary.</div>
+        <div class="explanation">This peer isn&#x27;t in the precheck and shows up in the postcheck. It&#x27;s new since the window started.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
         
     </div>
@@ -607,7 +607,7 @@ details .diff-box {
     <div class="finding attention">
         <div class="finding-title">
             <span class="badge badge-attention">Attention</span>
-            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="finding-heading">BGP Peer Shut Down</span>
             <span class="peer-name">ISP-A</span>
             <span class="peer-ip">198.51.100.1</span>
             <span class="peer-ip">AS64496</span>
@@ -633,7 +633,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="explanation">Someone shut this peer down during the window. It&#x27;s idle on purpose, not broken.</div>
         <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
         
     </div>
@@ -786,7 +786,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by +3, matching the expectation of a change of +3. Note: SITE-A-SW-1 re-advertises the three ISP-B transit prefixes over iBGP</div>
+        <div class="explanation">Prefix count changed by +3, which is what you planned for (a change of +3). Note: SITE-A-SW-1 re-advertises the three ISP-B transit prefixes over iBGP</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
         
     </div>
@@ -923,7 +923,7 @@ details .diff-box {
 </div>
 
 <div class="footer">
-    Generated 2026-10-02 18:57:44 | Maintenance Report
+    Generated 2026-10-02 19:30:01 | Maintenance Report
 </div>
 
 <script>

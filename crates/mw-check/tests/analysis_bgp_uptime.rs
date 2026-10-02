@@ -92,8 +92,8 @@ fn uptime_going_backwards_is_a_reset() {
     assert_eq!(finding.impact, Impact::Attention);
     assert_eq!(finding.classification, Classification::Protocol);
     assert!(finding.fields.contains(&Field::new("Up/Down", "5d02h", "00:12:33")));
-    assert!(finding.summary.contains("torn down and re-established"));
-    assert!(finding.summary.contains("Prefix counts are unchanged."));
+    assert!(finding.summary.contains("dropped and came back during the window"));
+    assert!(finding.summary.contains("Prefix counts came back the same."));
     assert!(finding.summary.contains("went from 5d02h to 00:12:33"));
 }
 

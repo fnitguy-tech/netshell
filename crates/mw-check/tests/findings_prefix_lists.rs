@@ -117,7 +117,7 @@ fn removed_entry_is_attention() {
 
     assert_eq!(findings.len(), 1);
     let finding = &findings[0];
-    assert_eq!(finding.title, "Prefix-List Entry Withdrawn");
+    assert_eq!(finding.title, "Prefix-List Entry Removed");
     assert_eq!(finding.impact, Impact::Attention);
     assert_eq!(finding.classification, Classification::Routing);
     assert_eq!(finding.subject, ["ISP-OUT", "seq 40"]);
@@ -127,7 +127,7 @@ fn removed_entry_is_attention() {
             .contains(&Field::new("Entry", "permit 198.51.100.243/32", "Not Present"))
     );
     assert_eq!(finding.evidence, "show ip prefix-list");
-    assert!(finding.summary.contains("no longer advertised"));
+    assert!(finding.summary.contains("isn't advertised any more"));
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn same_seq_different_prefix_is_attention() {
 
     assert_eq!(findings.len(), 1);
     let finding = &findings[0];
-    assert_eq!(finding.title, "Prefix-List Sequence Overwritten");
+    assert_eq!(finding.title, "Prefix-List Entry Replaced");
     assert_eq!(finding.impact, Impact::Attention);
     assert!(finding.fields.contains(&Field::new(
         "Entry",
@@ -177,7 +177,7 @@ fn resequenced_entry_is_changed_not_withdrawn() {
     let findings = prefix_list_findings(&sections(&lines(&SHOW_PRE), None), &sections(&post, None));
 
     assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].title, "Prefix-List Entry Resequenced");
+    assert_eq!(findings[0].title, "Prefix-List Entry Moved");
     assert_eq!(findings[0].impact, Impact::Changed);
     assert!(findings[0].fields.contains(&Field::new("Sequence", "40", "45")));
 }
@@ -210,7 +210,7 @@ fn falls_back_to_running_config_when_show_is_not_captured() {
     let findings = prefix_list_findings(&pre, &post);
 
     assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].title, "Prefix-List Entry Withdrawn");
+    assert_eq!(findings[0].title, "Prefix-List Entry Removed");
     assert_eq!(findings[0].evidence, "show running-config");
 }
 
@@ -243,7 +243,7 @@ fn prefix_list_removal_in_a_full_capture_is_one_attention_routing_finding() {
     let findings = prefix_list_findings(&pre, &post);
 
     assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].title, "Prefix-List Entry Withdrawn");
+    assert_eq!(findings[0].title, "Prefix-List Entry Removed");
     assert_eq!(findings[0].impact, Impact::Attention);
     assert_eq!(findings[0].classification, Classification::Routing);
     assert_eq!(findings[0].evidence, "show ip prefix-list");

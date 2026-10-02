@@ -372,7 +372,10 @@ pub fn pair_findings(
                         count_or_not_present(entries_a.map(IndexMap::len)),
                         count_or_not_present(entries_b.map(IndexMap::len)),
                     )],
-                    format!("Both members had prefix-list {name} in the precheck; {missing_on} no longer has it."),
+                    format!(
+                        "{missing_on} lost prefix-list {name} during this window. Both members had it in the \
+                         precheck."
+                    ),
                     source,
                 ));
             }
@@ -400,14 +403,14 @@ pub fn pair_findings(
                 .collect();
             findings.push(pair_finding(
                 Classification::Routing,
-                "Pair Prefix-List Divergence",
+                "Pair Prefix-Lists Differ",
                 pair,
                 vec![name.clone()],
                 fields,
                 format!(
-                    "Prefix-list {name} differs between the two members at {} sequence(s). A redundant pair is \
-                     expected to carry the same policy; a one-sided edit (or an overwritten sequence on one side) \
-                     advertises or accepts different routes depending on which member a peer talks to.",
+                    "A peer gets different routes depending on which member it lands on. Prefix-list {name} \
+                     differs at {} sequence(s), and a redundant pair is supposed to carry the same policy. Either \
+                     one side was edited alone, or a sequence got overwritten on one side.",
                     differing.len()
                 ),
                 source,
@@ -439,7 +442,10 @@ pub fn pair_findings(
                         count_or_not_present(body_a.map(<[String]>::len)),
                         count_or_not_present(body_b.map(<[String]>::len)),
                     )],
-                    format!("Both members had route-map {name} in the precheck; {missing_on} no longer has it."),
+                    format!(
+                        "{missing_on} lost route-map {name} during this window. Both members had it in the \
+                         precheck."
+                    ),
                     map_source,
                 ));
             }
@@ -469,7 +475,7 @@ pub fn pair_findings(
 
         let mut finding = pair_finding(
             Classification::Routing,
-            "Pair Route-Map Divergence",
+            "Pair Route-Maps Differ",
             pair,
             vec![name.clone()],
             vec![
@@ -477,8 +483,9 @@ pub fn pair_findings(
                 Field::new("Differing lines", removed.to_string(), added.to_string()),
             ],
             format!(
-                "Route-map {name} differs between the two members. Lines only on {a} are shown in red, lines only \
-                 on {b} in green."
+                "Route-map {name} differs between the two members in a way that isn't preference tuning. Lines \
+                 only on {a} are red, lines only on {b} are green. This skips prepend depth, local-preference, \
+                 metric, and community, because a pair is meant to differ in those."
             ),
             map_source,
         );
@@ -509,14 +516,16 @@ pub fn pair_findings(
                 .collect();
             findings.push(pair_finding(
                 Classification::Protocol,
-                "Pair HA State Divergence",
+                "Pair HA State Differs",
                 pair,
                 vec!["high-availability".to_string()],
                 fields,
-                "HA state values that should match on both members of a healthy pair differ (role-dependent \
-                 values such as State and Priority are ignored). A version, sync or cookie mismatch means one \
-                 member did not receive what the other did."
-                    .to_string(),
+                format!(
+                    "These two members disagree on {} HA value(s) that a healthy pair keeps in sync. Values that \
+                     depend on which member is active - state, priority, and addresses - don't count. A version, \
+                     sync, or cookie mismatch means one member didn't get what the other did.",
+                    differing.len()
+                ),
                 HA_COMMAND,
             ));
         }
@@ -556,12 +565,11 @@ pub fn pair_findings(
                 vec!["high-availability".to_string()],
                 fields,
                 format!(
-                    "The pair reports {} content version(s) as Mismatch between the two members. Both members \
-                     print the same verdict, so this is the pair disagreeing with itself rather than one capture \
-                     differing from the other. A content version that differs across the pair means policy that \
-                     depends on it - an application, a threat signature, an IoT device profile - can evaluate \
-                     differently after a failover than before it. Compare 'show system info' on both members to \
-                     find which file is behind, then push that update to the member that is stale.",
+                    "This pair disagrees with itself: {} content version(s) read Mismatch. Both members print \
+                     the same verdict, so comparing the two captures can't catch it. Policy that leans on that \
+                     content - an application, a threat signature, an IoT device profile - can decide differently \
+                     after a failover than before it. Run 'show system info' on both members to see which file is \
+                     behind, then push that update to the stale one.",
                     mismatched.len()
                 ),
                 HA_COMMAND,

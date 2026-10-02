@@ -461,18 +461,18 @@ details .diff-box {
         <div class="outcome-grid">
             <div class="outcome-pill">
                 <strong>Assessment</strong>
-                <p>Operational changes were detected that should be reviewed. Click the Attention card to jump to items requiring review.</p>
+                <p>Something changed that you should look at. Click Attention to jump to it.</p>
             </div>
             <div class="outcome-pill">
                 <strong>Detected Categories</strong>
                 <ul class="outcome-list">
 
-<li>22 configuration finding/evidence item(s) detected.</li>
-<li>10 protocol finding/evidence item(s) detected.</li>
-<li>29 routing finding/evidence item(s) detected.</li>
-<li>2 interface finding/evidence item(s) detected.</li>
-<li>4 layer 2 finding/evidence item(s) detected.</li>
-<li>2 evidence only finding/evidence item(s) detected.</li>
+<li>22 configuration item(s).</li>
+<li>10 protocol item(s).</li>
+<li>29 routing item(s).</li>
+<li>2 interface item(s).</li>
+<li>4 layer 2 item(s).</li>
+<li>2 evidence only item(s).</li>
 
                 </ul>
             </div>
@@ -570,7 +570,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">The peer transitioned from administratively idle to established.</div>
+        <div class="explanation">Someone un-shut this peer during the window and it came up.</div>
         <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
     </div>
     
@@ -599,7 +599,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -195. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -195. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -628,7 +628,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -196. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -196. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -657,7 +657,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -203. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -203. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -665,7 +665,7 @@ details .diff-box {
     <div class="finding attention">
         <div class="finding-title">
             <span class="badge badge-attention">Attention</span>
-            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="finding-heading">BGP Peer Shut Down</span>
             <span class="peer-name">ISP-A ASSET-0016</span>
             <span class="peer-ip">198.18.85.3</span>
             <span class="peer-as">AS64550</span>
@@ -686,7 +686,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="explanation">Someone shut this peer down during the window. It's idle on purpose, not broken.</div>
         <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
     </div>
     
@@ -715,7 +715,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by 3. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -887,7 +887,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by 3. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -916,7 +916,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -196. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -196. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -945,7 +945,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -203. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -203. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -974,7 +974,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -202. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -202. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
     </div>
     
@@ -982,7 +982,7 @@ details .diff-box {
     <div class="finding attention">
         <div class="finding-title">
             <span class="badge badge-attention">Attention</span>
-            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="finding-heading">BGP Peer Shut Down</span>
             <span class="peer-name">ISP-A ASSET-0019</span>
             <span class="peer-ip">198.18.85.5</span>
             <span class="peer-as">AS64550</span>
@@ -1003,7 +1003,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="explanation">Someone shut this peer down during the window. It's idle on purpose, not broken.</div>
         <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
     </div>
     
@@ -1204,7 +1204,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">The peer transitioned from administratively idle to established.</div>
+        <div class="explanation">Someone un-shut this peer during the window and it came up.</div>
         <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
     </div>
     
@@ -1233,7 +1233,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -195. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -195. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     
@@ -1262,7 +1262,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -203. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -203. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     
@@ -1291,7 +1291,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -202. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -202. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     
@@ -1299,7 +1299,7 @@ details .diff-box {
     <div class="finding attention">
         <div class="finding-title">
             <span class="badge badge-attention">Attention</span>
-            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="finding-heading">BGP Peer Shut Down</span>
             <span class="peer-name">ISP-A ASSET-0020-</span>
             <span class="peer-ip">198.18.85.7</span>
             <span class="peer-as">AS64550</span>
@@ -1320,7 +1320,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="explanation">Someone shut this peer down during the window. It's idle on purpose, not broken.</div>
         <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
     </div>
     
@@ -1349,7 +1349,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by 3. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     
@@ -1556,7 +1556,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -195. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -195. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     
@@ -1585,7 +1585,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -196. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -196. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     
@@ -1614,7 +1614,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by -202. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by -202. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     
@@ -1622,7 +1622,7 @@ details .diff-box {
     <div class="finding attention">
         <div class="finding-title">
             <span class="badge badge-attention">Attention</span>
-            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="finding-heading">BGP Peer Shut Down</span>
             <span class="peer-name">ISP-A ASSET-0015</span>
             <span class="peer-ip">198.18.85.1</span>
             <span class="peer-as">AS64550</span>
@@ -1643,7 +1643,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="explanation">Someone shut this peer down during the window. It's idle on purpose, not broken.</div>
         <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
     </div>
     
@@ -1672,7 +1672,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="explanation">Prefix count changed by 3. That's normal if this window touched routing policy, communities, failover, or advertised routes. Write the expected count into the expectations file and the next run will rate it for you.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
     </div>
     

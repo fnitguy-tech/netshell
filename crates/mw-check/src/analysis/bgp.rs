@@ -15,8 +15,9 @@ use super::{TITLE_AS_PLANNED, TITLE_DIFFERS, TITLE_NOT_MET, TITLE_UNEXPLAINED};
 
 /// The generic caveat a prefix delta carries when nobody wrote down
 /// what the change was meant to do.
-pub const PREFIX_DELTA_HEDGE: &str =
-    "This may be expected when routing policy, communities, failover, or advertised routes change.";
+pub const PREFIX_DELTA_HEDGE: &str = "That's normal if this window touched routing policy, communities, \
+                                      failover, or advertised routes. Write the expected count into the \
+                                      expectations file and the next run will rate it for you.";
 
 // EOS "Up/Down" column formats. The timer rolls over to a coarser unit
 // as the session ages: 00:52:40 under a day, 1d02h under a week, 2w3d
@@ -413,7 +414,7 @@ fn prefix_delta_finding(
             peer,
             Some(before),
             Some(after),
-            format!("Prefix count changed by {delta:+}, matching the expectation of {planned}.{note}"),
+            format!("Prefix count changed by {delta:+}, which is what you planned for ({planned}).{note}"),
             evidence,
         );
     }
@@ -426,7 +427,7 @@ fn prefix_delta_finding(
         peer,
         Some(before),
         Some(after),
-        format!("Prefix count changed by {delta:+}; the expectation was {planned}.{note}"),
+        format!("Prefix count changed by {delta:+}, but you planned for {planned}.{note}"),
         evidence,
     )
 }
@@ -467,7 +468,9 @@ pub fn bgp_neighbor_findings(
             before,
             Some(before),
             None,
-            "This peer appeared in the precheck but was not present in the postcheck BGP summary.".to_string(),
+            "This peer is in the precheck and gone from the postcheck. Either the neighbor was removed from \
+             the config, or the session never came back."
+                .to_string(),
             "show ip bgp summary",
         ));
     }
@@ -486,7 +489,8 @@ pub fn bgp_neighbor_findings(
             after,
             None,
             Some(after),
-            "This peer was not present in the precheck but appeared in the postcheck BGP summary.".to_string(),
+            "This peer isn't in the precheck and shows up in the postcheck. It's new since the window started."
+                .to_string(),
             "show ip bgp summary",
         ));
     }
@@ -513,19 +517,19 @@ pub fn bgp_neighbor_findings(
                 (
                     "BGP Peer Activated",
                     Impact::Stable,
-                    "The peer transitioned from administratively idle to established.",
+                    "Someone un-shut this peer during the window and it came up.",
                 )
             } else if before.state == "Estab" && after.state == "Idle(Admin)" {
                 (
-                    "BGP Peer Administratively Disabled",
+                    "BGP Peer Shut Down",
                     Impact::Attention,
-                    "The peer transitioned from established to administratively idle.",
+                    "Someone shut this peer down during the window. It's idle on purpose, not broken.",
                 )
             } else {
                 (
                     "BGP Peer State Changed",
                     Impact::Attention,
-                    "The peer state changed between precheck and postcheck.",
+                    "This peer isn't in the state it started the window in.",
                 )
             };
 
@@ -545,9 +549,9 @@ pub fn bgp_neighbor_findings(
             // trace of a session that dropped and came straight back.
             let delta = received_count(after) - received_count(before);
             let prefix_note = if delta == 0 && before.prefixes_accepted == after.prefixes_accepted {
-                "Prefix counts are unchanged.".to_string()
+                "Prefix counts came back the same.".to_string()
             } else {
-                format!("Prefix count changed by {delta:+} across the reset.")
+                format!("Prefix count also changed by {delta:+} across the reset.")
             };
             let updown_before = before.updown.as_deref().unwrap_or_default();
             let updown_after = after.updown.as_deref().unwrap_or_default();
@@ -561,10 +565,9 @@ pub fn bgp_neighbor_findings(
                 Some(before),
                 Some(after),
                 format!(
-                    "The peer is established in both captures but its session uptime went from \
-                     {updown_before} to {updown_after}. The postcheck is taken after the precheck, so an \
-                     uninterrupted session can only show a larger value: this session was torn down and \
-                     re-established during the window. {prefix_note}"
+                    "This session dropped and came back during the window. It reads Established in both \
+                     captures, so nothing else gives it away - but uptime went from {updown_before} to \
+                     {updown_after}, and a session that never dropped can only count up. {prefix_note}"
                 ),
                 detected_evidence,
             ));

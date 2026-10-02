@@ -353,11 +353,11 @@ pub fn interface_findings(pre: &Sections, post: &Sections) -> Vec<Finding> {
         } else {
             (
                 Impact::Attention,
-                "Newly Addressed Interface Down",
+                "New Address, Interface Still Down",
                 format!(
-                    "{name} gained {address} during the window but is '{status}' in the postcheck: the address was \
-                     configured cleanly and the interface still does not work. Check the admin state, the cable or \
-                     the far end before closing the window."
+                    "The config is fine and the link isn't. {name} gained {address} during the window but reads \
+                     '{status}' in the postcheck. Check the admin state, the cable, or the far end before you \
+                     close the window."
                 ),
             )
         };

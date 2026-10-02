@@ -256,7 +256,7 @@ fn finding_renders_exactly_like_the_python_report() {
             ("0", "815"),
             ("Not Present", "00:52:40"),
         ],
-        "This peer was not present in the precheck but appeared in the postcheck BGP summary.",
+        "This peer isn't in the precheck and shows up in the postcheck. It's new since the window started.",
     );
     let rendered = render_finding(&added);
     assert!(
@@ -266,7 +266,7 @@ fn finding_renders_exactly_like_the_python_report() {
 
     let mut disabled = bgp_finding(
         Impact::Attention,
-        "BGP Peer Administratively Disabled",
+        "BGP Peer Shut Down",
         ("ISP-A", "198.51.100.1", "64496"),
         [
             ("Estab", "Idle(Admin)"),
@@ -274,7 +274,7 @@ fn finding_renders_exactly_like_the_python_report() {
             ("812", "0"),
             ("21d04h", "00:01:12"),
         ],
-        "The peer transitioned from established to administratively idle.",
+        "Someone shut this peer down during the window. It's idle on purpose, not broken.",
     );
     disabled.evidence = "show ip bgp summary + related BGP shutdown/no shutdown config".to_string();
     let rendered = render_finding(&disabled);
@@ -312,7 +312,7 @@ fn finding_badges_and_classes_per_impact() {
 #[test]
 fn finding_detail_and_pair_arrow() {
     let mut pair = pair_finding(
-        "Pair Route-Map Divergence",
+        "Pair Route-Maps Differ",
         ("SITE-A-SW-1", "SITE-A-SW-2"),
         &["ISP-IN"],
         &[("Clauses", "3", "2")],
@@ -342,9 +342,9 @@ fn stable_network_verdict() {
 
     assert!(page.contains("<div class=\"value health-stable\">Stable</div>"));
     assert!(page.contains("<p>Nothing changed between the precheck and the postcheck beyond expected churn.</p>"));
-    assert!(page.contains("<li>No meaningful findings detected.</li>"));
-    assert!(!page.contains("finding/evidence item(s) detected"));
-    assert!(page.contains("<p class=\"empty\">No attention-level findings detected.</p>"));
+    assert!(page.contains("<li>Nothing worth reporting.</li>"));
+    assert!(!page.contains("item(s)."));
+    assert!(page.contains("<p class=\"empty\">Nothing needs your attention.</p>"));
     assert!(page.contains(
         "<p class=\"empty\">No redundant pairs to compare: no two captured hostnames differ only by a trailing number, and the inventory lists no pairs.</p>"
     ));
@@ -376,10 +376,8 @@ fn changed_verdict_from_config_changes_alone() {
     let page = render("NET-1", &analysis);
 
     assert!(page.contains("<div class=\"value health-changed\">Changed</div>"));
-    assert!(
-        page.contains("<p>Meaningful changes were detected, but no immediate attention markers were identified.</p>")
-    );
-    assert!(page.contains("<li>2 configuration finding/evidence item(s) detected.</li>"));
+    assert!(page.contains("<p>Something changed, but nothing needs your attention.</p>"));
+    assert!(page.contains("<li>2 configuration item(s).</li>"));
     assert!(page.contains("<div class=\"label\">Changed</div><div class=\"value\">2</div>"));
     assert!(page.contains("Findings: 2 | Impact Score: 4 | Evidence Sections: 0"));
 }
@@ -400,7 +398,7 @@ fn attention_and_action_required_verdict() {
         Classification::Routing,
         "Prefix list",
         Impact::Attention,
-        "Prefix-List Entry Withdrawn",
+        "Prefix-List Entry Removed",
         &["ISP-OUT", "seq 20"],
         &[("Rule", "permit 198.51.100.243/32", "Removed")],
         "An entry was removed.",
@@ -415,11 +413,9 @@ fn attention_and_action_required_verdict() {
     let page = render("NET-1", &analysis);
 
     assert!(page.contains("<div class=\"value health-action-required\">Action Required</div>"));
-    assert!(page.contains(
-        "<p>One or more findings may require action. Click Action Required to jump to the highest-priority items.</p>"
-    ));
-    assert!(page.contains("<li>1 protocol finding/evidence item(s) detected.</li>"));
-    assert!(page.contains("<li>1 routing finding/evidence item(s) detected.</li>"));
+    assert!(page.contains("<p>Something here may need fixing. Click Action Required to jump to it.</p>"));
+    assert!(page.contains("<li>1 protocol item(s).</li>"));
+    assert!(page.contains("<li>1 routing item(s).</li>"));
     assert!(page.contains("<div class=\"label\">Devices With Findings</div><div class=\"value\">2</div>"));
     assert!(page.contains("<div class=\"label\">Attention</div><div class=\"value health-attention\">1</div>"));
     assert!(page.contains("<span class=\"badge badge-action\">Action Required</span>"));
@@ -455,15 +451,13 @@ fn attention_without_action_is_attention() {
     let analysis = analysis(vec![device("SW-1", vec![attention], vec![], BTreeMap::new())]);
     let page = render("NET-1", &analysis);
     assert!(page.contains("<div class=\"value health-attention\">Attention</div>"));
-    assert!(page.contains(
-        "<p>Operational changes were detected that should be reviewed. Click the Attention card to jump to items requiring review.</p>"
-    ));
+    assert!(page.contains("<p>Something changed that you should look at. Click Attention to jump to it.</p>"));
 }
 
 #[test]
 fn pair_symmetry_section() {
     let divergence = pair_finding(
-        "Pair Prefix-List Divergence",
+        "Pair Prefix-Lists Differ",
         ("SITE-A-SW-1", "SITE-A-SW-2"),
         &["ISP-OUT"],
         &[("seq 20", "permit 198.51.100.243/32", "permit 198.51.100.0/24")],
@@ -483,7 +477,7 @@ fn pair_symmetry_section() {
     ));
     assert!(!page.contains("Both members of every pair agree."));
     // Once in the pair section, once on each member.
-    assert_eq!(page.matches("Pair Prefix-List Divergence").count(), 3);
+    assert_eq!(page.matches("Pair Prefix-Lists Differ").count(), 3);
     assert!(page.contains("SITE-A-SW-1 vs SITE-A-SW-2"));
     assert!(page.contains("<span class=\"arrow\">vs</span>"));
     // Counted once network-wide, attributed to both members - and on the
@@ -492,7 +486,7 @@ fn pair_symmetry_section() {
     assert!(page.contains("<div class=\"label\">Attention</div><div class=\"value health-attention\">0</div>"));
     assert!(page.contains("<div class=\"label\">Pair Symmetry</div><div class=\"value\">1</div>"));
     assert!(page.contains("<div class=\"value health-stable\">Stable</div>"));
-    assert!(page.contains("1 pair-symmetry finding(s) describe how the two members"));
+    assert!(page.contains("1 pair-symmetry finding(s) say how the two members"));
     assert!(page.contains("href=\"#device-site-a-sw-1\""));
     assert!(page.contains("href=\"#device-site-a-sw-2\""));
     assert!(!page.contains("href=\"#device-site-b-sw-1\""));
@@ -501,7 +495,7 @@ fn pair_symmetry_section() {
         &[
             "id=\"attention-items\"",
             "id=\"pair-symmetry\"",
-            "Pair Prefix-List Divergence",
+            "Pair Prefix-Lists Differ",
             "id=\"healthChart\"",
             "id=\"device-findings\"",
         ],
@@ -557,13 +551,7 @@ fn expectations_line_and_header_pill() {
     assert!(page.contains("BGP Prefix Count Changed Unexpectedly"));
     assert!(page.contains("health-attention\">Attention"));
     // The outcome line comes after the category items.
-    assert_in_order(
-        &page,
-        &[
-            "protocol finding/evidence item(s) detected.",
-            "BGP prefix deltas against",
-        ],
-    );
+    assert_in_order(&page, &["protocol item(s).", "BGP prefix deltas against"]);
 
     let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, None);
     assert!(page.contains("<div class=\"meta-pill\">Expectations: provided</div>"));
@@ -708,8 +696,8 @@ fn chart_data_is_embedded_like_python_json() {
     assert!(page.contains("const deviceLabels = [\"Z\\u00fcrich-1\", \"SW-\\\"2\\\"\"];"));
     assert!(page.contains("const deviceImpact = [0, 0];"));
     assert_eq!(page.matches("<canvas").count(), 3);
-    assert!(page.contains("<li>2 layer 2 finding/evidence item(s) detected.</li>"));
-    assert!(page.contains("<li>1 evidence only finding/evidence item(s) detected.</li>"));
+    assert!(page.contains("<li>2 layer 2 item(s).</li>"));
+    assert!(page.contains("<li>1 evidence only item(s).</li>"));
 }
 
 #[test]
@@ -840,10 +828,10 @@ fn chart_canvases_and_footer() {
 fn python_build_html_report_end_to_end_assertions() {
     let disabled = bgp_finding(
         Impact::Attention,
-        "BGP Peer Administratively Disabled",
+        "BGP Peer Shut Down",
         ("SPINE1", "203.0.113.1", "65001"),
         [("Estab", "Idle(Admin)"), ("100", "0"), ("98", "0"), ("5d02h", "5d02h")],
-        "The peer transitioned from established to administratively idle.",
+        "Someone shut this peer down during the window. It's idle on purpose, not broken.",
     );
     let config = vec![
         DiffLine::context("router bgp 65001"),
@@ -862,7 +850,7 @@ fn python_build_html_report_end_to_end_assertions() {
 
     assert!(page.contains("NET-1"));
     assert!(page.contains("switch1.txt"));
-    assert!(page.contains("BGP Peer Administratively Disabled"));
+    assert!(page.contains("BGP Peer Shut Down"));
     assert!(page.contains("neighbor 203.0.113.1 shutdown"));
     assert_eq!(page.matches("<canvas").count(), 3);
 }
@@ -873,7 +861,7 @@ fn python_prefix_list_report_assertions() {
         Classification::Routing,
         "Prefix list",
         Impact::Attention,
-        "Prefix-List Entry Withdrawn",
+        "Prefix-List Entry Removed",
         &["ISP-OUT", "seq 20"],
         &[("Rule", "permit 198.51.100.243/32", "Removed")],
         "A permit entry was removed from the list.",
@@ -886,7 +874,7 @@ fn python_prefix_list_report_assertions() {
     assert!(analysis.device_reports[0].impact_score >= 5);
 
     let page = render("NET-2", &analysis);
-    assert!(page.contains("Prefix-List Entry Withdrawn"));
+    assert!(page.contains("Prefix-List Entry Removed"));
     assert!(page.contains("health-attention\">Attention"));
     assert!(page.contains("permit 198.51.100.243/32"));
     assert!(page.contains("<canvas"));
@@ -920,7 +908,7 @@ fn python_interface_report_assertions() {
         Classification::Interface,
         "Interface",
         Impact::Attention,
-        "Newly Addressed Interface Down",
+        "New Address, Interface Still Down",
         &["Ethernet50/1"],
         &[("Address", "none", "198.51.100.10/30"), ("Status", "n/a", "down")],
         "The interface gained an address during the window but is down.",
@@ -928,7 +916,7 @@ fn python_interface_report_assertions() {
     );
     let analysis = analysis(vec![device("SITE-A-SW-1", vec![down], vec![], BTreeMap::new())]);
     let page = render("NET-6", &analysis);
-    assert!(page.contains("Newly Addressed Interface Down"));
+    assert!(page.contains("New Address, Interface Still Down"));
     assert!(page.contains("health-attention\">Attention"));
     assert!(page.contains("198.51.100.10/30"));
 }

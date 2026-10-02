@@ -148,11 +148,11 @@ fn admin_shutdown_is_attention() {
     let findings = bgp_neighbor_findings(&pre, &post, &[], None);
 
     assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].title, "BGP Peer Administratively Disabled");
+    assert_eq!(findings[0].title, "BGP Peer Shut Down");
     assert_eq!(findings[0].impact, Impact::Attention);
     assert_eq!(
         findings[0].summary,
-        "The peer transitioned from established to administratively idle."
+        "Someone shut this peer down during the window. It's idle on purpose, not broken."
     );
     assert_eq!(findings[0].evidence, "show ip bgp summary");
 }
