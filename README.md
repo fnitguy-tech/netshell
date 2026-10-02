@@ -127,7 +127,7 @@ reports/<TICKET>/
   Precheck/precheck_<timestamp>/<hostname>.txt   (+ .zip)
   Postcheck/postcheck_<timestamp>/<hostname>.txt (+ .zip)
   Compare/compare_<timestamp>.txt / .html
-  expectations.yml   (optional, written by hand: expected BGP deltas)
+  notes.md           (optional: your account of the window)
 ```
 
 The Python tool's names (`precheck`, `postcheck`, `compare`) still work
@@ -181,9 +181,11 @@ that, the report understands:
   local-preference.
 - **Interfaces** that gained an address during the window and are still
   down. The config is fine and the link isn't.
-- **Expectations.** Write down what the change should do to prefix
-  counts. The report then rates each delta as planned, missed the plan,
-  with no plan, or never happened - instead of hedging on all of them.
+- **Prefix-count changes.** A peer whose received or accepted count moved
+  is `Changed`, with the caveat that routing policy, communities,
+  failover, and advertised routes all move it legitimately. Whether this
+  particular move was meant to happen is a judgement, so it goes in your
+  notes rather than in a rating.
 
 ![Interpreted BGP findings with impact ratings and before/after state](docs/img/report-findings.png)
 
@@ -229,22 +231,25 @@ pairs:
   - [EDGE-FW-PRIMARY, EDGE-FW-SECONDARY]
 ```
 
-**Expectations.** You usually know what a routing change should do. "SW-2
-learns three more transit prefixes." "ISP-B sends the full table, 815
-prefixes." Write that down in `reports/<TICKET>/expectations.yml`, or pass
-a file with `mw report -e`. One entry per device and peer:
+**Your write-up.** The report says what changed. It can't say why you
+changed it, what surprised you, or what you only noticed afterwards.
+`mw notes NET-123` writes `reports/<TICKET>/notes.md`, seeded with the
+ticket, the window times, and the devices your captures hold, under five
+headings:
 
-```yaml
-ticket: NET-123                  # optional; must match when present
-expectations:
-  - device: SITE-A-SW-2          # capture hostname, case-insensitive
-    peer: 10.0.0.1               # neighbor IP or the Description column
-    expected_delta: +3           # change in prefixes received, or
-  - device: SITE-A-SW-1
-    peer: ISP-B
-    expected_prefixes: 815       # absolute prefixes received afterwards
-    note: full table minus bogons
+```markdown
+## What we set out to do
+## What actually happened
+## What we missed
+## Still open
+## Would do differently
 ```
+
+Fill it in with any editor and `mw report` renders it above the machine
+findings. Bullets, `- [ ]` and `- [x]` checkboxes, `` `code` `` and
+`**bold**` all work, and open checkboxes get counted. A section you leave
+empty is left out, a template with nothing filled in renders nothing at
+all, and it never overwrites notes you already started.
 
 **A per-change inventory.** Copy the parts of `devices.yml` you need into
 a file named for the change and pass it with `-i`. The capture then covers

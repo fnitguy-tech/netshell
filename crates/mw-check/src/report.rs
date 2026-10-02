@@ -16,7 +16,6 @@ use std::path::{Path, PathBuf};
 use anyhow::Context as _;
 
 use crate::analysis::{self, Analysis, Classification, DeviceReport, DiffKind, Finding, Impact};
-use crate::expectations::Expectation;
 use crate::layout::{TicketDirs, display_path, find_latest_folder};
 
 /// The Chart.js CDN tag: the report's only external asset.
@@ -167,15 +166,6 @@ pub fn summary_items(analysis: &Analysis) -> Vec<String> {
         items.push("Nothing worth reporting.".to_string());
     }
 
-    if analysis.expectations_in_play {
-        let totals = &analysis.expectation_totals;
-        items.push(format!(
-            "Against your expectations file: {} as planned, {} missed the plan, {} with no plan, {} planned \
-             change(s) that never happened.",
-            totals.as_planned, totals.differs, totals.unexplained, totals.not_met
-        ));
-    }
-
     items
 }
 
@@ -233,7 +223,6 @@ pub fn render_html(
     precheck_folder: &Path,
     postcheck_folder: &Path,
     analysis: &Analysis,
-    expectations_label: Option<&str>,
     notes_text: Option<&str>,
 ) -> String {
     let generated = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
@@ -242,7 +231,6 @@ pub fn render_html(
         precheck_folder,
         postcheck_folder,
         analysis,
-        expectations_label,
         notes_text,
         &generated,
     )
@@ -255,7 +243,6 @@ pub fn render_html_at(
     precheck_folder: &Path,
     postcheck_folder: &Path,
     analysis: &Analysis,
-    expectations_label: Option<&str>,
     notes_text: Option<&str>,
     generated: &str,
 ) -> String {
@@ -291,15 +278,6 @@ pub fn render_html_at(
     let chart_device_labels = json_strings(device_labels.iter().map(String::as_str));
     let chart_device_impact = json_numbers(device_reports.iter().map(|report| report.impact_score));
 
-    let expectations_pill = if analysis.expectations_in_play {
-        format!(
-            "<div class=\"meta-pill\">Expectations: {}</div>",
-            escape(expectations_label.unwrap_or("provided"))
-        )
-    } else {
-        String::new()
-    };
-
     let mut parts: Vec<String> = Vec::new();
 
     parts.push(format!(
@@ -327,7 +305,6 @@ pub fn render_html_at(
         <div class=\"meta-pill\">Ticket: {ticket}</div>
         <div class=\"meta-pill\">Precheck: {precheck}</div>
         <div class=\"meta-pill\">Postcheck: {postcheck}</div>
-        {expectations_pill}
     </div>
 </div>
 
@@ -617,8 +594,6 @@ pub fn build_html_report(
     dirs: &TicketDirs,
     run_timestamp: &str,
     pairs: Option<&[(String, String)]>,
-    expectations: Option<&[Expectation]>,
-    expectations_label: Option<&str>,
     notes_text: Option<&str>,
 ) -> anyhow::Result<Option<PathBuf>> {
     let precheck_folder = find_latest_folder(&dirs.precheck, "precheck_");
@@ -637,15 +612,8 @@ pub fn build_html_report(
     fs::create_dir_all(&dirs.compare).with_context(|| format!("creating {}", dirs.compare.display()))?;
     let html_report = dirs.compare.join(format!("compare_{run_timestamp}.html"));
 
-    let analysis = analysis::analyze(&precheck_folder, &postcheck_folder, pairs, expectations)?;
-    let page = render_html(
-        ticket,
-        &precheck_folder,
-        &postcheck_folder,
-        &analysis,
-        expectations_label,
-        notes_text,
-    );
+    let analysis = analysis::analyze(&precheck_folder, &postcheck_folder, pairs)?;
+    let page = render_html(ticket, &precheck_folder, &postcheck_folder, &analysis, notes_text);
 
     fs::write(&html_report, page).with_context(|| format!("writing {}", html_report.display()))?;
 

@@ -6,8 +6,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use mw_check::analysis::{
-    Analysis, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, ExpectationTotals, Field,
-    Finding, Impact, ImpactCounts,
+    Analysis, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, Field, Finding, Impact,
+    ImpactCounts,
 };
 use mw_check::capture::safe_id;
 use mw_check::layout::ticket_dirs_under;
@@ -182,8 +182,6 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
         device_reports: devices,
         pairs: Vec::new(),
         pair_findings: Vec::new(),
-        expectations_in_play: false,
-        expectation_totals: ExpectationTotals::default(),
         total_findings_by_classification: by_classification,
         impact_totals,
         window_totals,
@@ -193,7 +191,7 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
 }
 
 fn render(ticket: &str, analysis: &Analysis) -> String {
-    render_html(ticket, Path::new(PRE), Path::new(POST), analysis, None, None)
+    render_html(ticket, Path::new(PRE), Path::new(POST), analysis, None)
 }
 
 fn index_of(haystack: &str, needle: &str) -> usize {
@@ -513,56 +511,6 @@ fn pair_symmetry_section() {
 }
 
 #[test]
-fn expectations_line_and_header_pill() {
-    let planned = Finding::new(
-        Classification::Protocol,
-        "BGP",
-        Impact::Stable,
-        "BGP Prefix Count Changed As Planned",
-    );
-    let unexplained = Finding::new(
-        Classification::Protocol,
-        "BGP",
-        Impact::Attention,
-        "BGP Prefix Count Changed With No Plan",
-    );
-    let mut analysis = analysis(vec![device(
-        "SITE-A-SW-1",
-        vec![planned, unexplained],
-        vec![],
-        BTreeMap::new(),
-    )]);
-    analysis.expectations_in_play = true;
-    analysis.expectation_totals = ExpectationTotals {
-        as_planned: 1,
-        differs: 0,
-        unexplained: 1,
-        not_met: 0,
-    };
-
-    let label = "reports/NET-5/expectations.yml";
-    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label), None);
-    assert!(page.contains("<div class=\"meta-pill\">Expectations: reports/NET-5/expectations.yml</div>"));
-    assert!(page.contains(
-        "<li>Against your expectations file: 1 as planned, 0 missed the plan, 1 with no plan, 0 planned change(s) that never happened.</li>"
-    ));
-    assert!(page.contains("1 as planned, 0 missed the plan, 1 with no plan"));
-    assert!(page.contains("BGP Prefix Count Changed As Planned"));
-    assert!(page.contains("BGP Prefix Count Changed With No Plan"));
-    assert!(page.contains("health-attention\">Attention"));
-    // The outcome line comes after the category items.
-    assert_in_order(&page, &["protocol item(s).", "Against your expectations file:"]);
-
-    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, None, None);
-    assert!(page.contains("<div class=\"meta-pill\">Expectations: provided</div>"));
-
-    analysis.expectations_in_play = false;
-    let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label), None);
-    assert!(!page.contains("Expectations:"));
-    assert!(!page.contains("Against your expectations file:"));
-}
-
-#[test]
 fn config_changes_render_context_lines_muted() {
     let config = vec![
         DiffLine::context("interface Ethernet49/1"),
@@ -643,16 +591,8 @@ fn hostile_strings_are_escaped_everywhere() {
     let config = vec![DiffLine::added("neighbor <x> description \"quoted\"")];
     let mut analysis = analysis(vec![device("SW-1", vec![hostile], config, diffs)]);
     analysis.pairs = vec![("<A>".to_string(), "<B>".to_string())];
-    analysis.expectations_in_play = true;
 
-    let page = render_html(
-        "NET-<1>",
-        Path::new("pre/<x>"),
-        Path::new("post/<y>"),
-        &analysis,
-        Some("expect/<z>.yml"),
-        None,
-    );
+    let page = render_html("NET-<1>", Path::new("pre/<x>"), Path::new("post/<y>"), &analysis, None);
 
     assert!(!page.contains("<script>alert"));
     assert!(!page.contains("<img "));
@@ -670,7 +610,6 @@ fn hostile_strings_are_escaped_everywhere() {
     assert!(page.contains("<div class=\"meta-pill\">Ticket: NET-&lt;1&gt;</div>"));
     assert!(page.contains("<div class=\"meta-pill\">Precheck: pre/&lt;x&gt;</div>"));
     assert!(page.contains("<div class=\"meta-pill\">Postcheck: post/&lt;y&gt;</div>"));
-    assert!(page.contains("<div class=\"meta-pill\">Expectations: expect/&lt;z&gt;.yml</div>"));
     assert!(page.contains("&lt;A&gt; / &lt;B&gt;."));
 }
 
@@ -752,7 +691,6 @@ fn static_skeleton_is_identical_to_the_fixture() {
         Path::new(POST),
         &analysis,
         None,
-        None,
         "2026-01-01 00:00:00",
     );
 
@@ -800,7 +738,6 @@ fn chart_canvases_and_footer() {
         Path::new(PRE),
         Path::new(POST),
         &analysis,
-        None,
         None,
         "2026-04-14 10:45:00",
     );
@@ -929,17 +866,17 @@ fn build_html_report_reports_missing_run_folders() {
     let tmp = tempfile::tempdir().unwrap();
     let dirs = ticket_dirs_under(tmp.path(), "NET-1");
 
-    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None, None).unwrap();
+    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None).unwrap();
     assert_eq!(result, None);
     assert!(!dirs.compare.exists());
 
     std::fs::create_dir_all(dirs.precheck.join("precheck_2026-01-01_00-00")).unwrap();
-    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None, None).unwrap();
+    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None).unwrap();
     assert_eq!(result, None);
     assert!(!dirs.compare.exists());
 
     std::fs::create_dir_all(dirs.postcheck.join("notes")).unwrap();
     std::fs::write(dirs.postcheck.join("postcheck_2026-01-01_02-00.zip"), b"").unwrap();
-    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None, None, None).unwrap();
+    let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None).unwrap();
     assert_eq!(result, None, "neither a zip nor an unprefixed folder is a run");
 }

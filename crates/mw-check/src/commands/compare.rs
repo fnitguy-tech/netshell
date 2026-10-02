@@ -13,7 +13,6 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::expectations::load_expectations;
 use crate::inventory::load_inventory;
 use crate::layout;
 use crate::report::build_html_report;
@@ -30,10 +29,6 @@ pub struct Args {
     /// (default: inventory/devices.yml when present)
     #[arg(short, long, value_name = "FILE")]
     pub inventory: Option<PathBuf>,
-
-    /// Expectations YAML (default: reports/<TICKET>/expectations.yml when present)
-    #[arg(short, long, value_name = "FILE")]
-    pub expectations: Option<PathBuf>,
 
     /// Your notes on the window, as Markdown
     /// (default: reports/<TICKET>/notes.md when present). Rendered above the
@@ -64,21 +59,6 @@ pub fn run(args: Args) -> anyhow::Result<()> {
     let run_timestamp = layout::timestamp();
     let pairs = load_pairs(args.inventory.as_deref())?.unwrap_or_default();
 
-    let expectations_path = args.expectations.clone().unwrap_or_else(|| dirs.expectations.clone());
-    let mut expected = None;
-
-    if args.expectations.is_some() || expectations_path.exists() {
-        let entries = load_expectations(&expectations_path, Some(&ticket))?;
-        println!(
-            "Expectations: {} ({} entries)",
-            layout::display_path(&expectations_path),
-            entries.len()
-        );
-        expected = Some(entries);
-    }
-
-    let expectations_label = layout::display_path(&expectations_path);
-
     let notes_path = args.notes.clone().unwrap_or_else(|| dirs.notes.clone());
     let notes_text = crate::notes::load(&notes_path);
 
@@ -106,15 +86,7 @@ pub fn run(args: Args) -> anyhow::Result<()> {
         }
     }
 
-    build_html_report(
-        &ticket,
-        &dirs,
-        &run_timestamp,
-        Some(&pairs),
-        expected.as_deref(),
-        Some(&expectations_label),
-        notes_text.as_deref(),
-    )?;
+    build_html_report(&ticket, &dirs, &run_timestamp, Some(&pairs), notes_text.as_deref())?;
 
     Ok(())
 }

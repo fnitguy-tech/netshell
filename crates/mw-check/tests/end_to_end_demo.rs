@@ -4,7 +4,6 @@
 use std::path::Path;
 
 use mw_check::analysis::analyze;
-use mw_check::expectations::load_expectations;
 use mw_check::report::render_html_at;
 
 fn fixtures() -> &'static Path {
@@ -15,8 +14,7 @@ fn fixtures() -> &'static Path {
 fn demo_analysis_renders_the_python_report() {
     let pre = fixtures().join("Precheck/precheck_2026-04-14_08-48");
     let post = fixtures().join("Postcheck/postcheck_2026-04-14_10-42");
-    let expectations = load_expectations(&fixtures().join("expectations.yml"), Some("NET-DEMO")).unwrap();
-    let analysis = analyze(&pre, &post, None, Some(&expectations)).unwrap();
+    let analysis = analyze(&pre, &post, None).unwrap();
 
     // Windows checkouts may carry CRLF; the comparison is on content.
     let expected = std::fs::read_to_string(fixtures().join("expected/compare.html"))
@@ -31,18 +29,10 @@ fn demo_analysis_renders_the_python_report() {
                 .map(|rest| rest.split(" | ").next().unwrap_or("").trim().to_string())
         })
         .unwrap_or_default();
-    let html = render_html_at(
-        "NET-DEMO",
-        &pre,
-        &post,
-        &analysis,
-        Some("docs/demo/NET-DEMO/expectations.yml"),
-        None,
-        &generated,
-    )
-    // The Python demo copies the captures under reports/; here they
-    // are read from the fixtures directory. Only the path labels differ.
-    .replace("fixtures/NET-DEMO/", "reports/NET-DEMO/");
+    let html = render_html_at("NET-DEMO", &pre, &post, &analysis, None, &generated)
+        // The Python demo copies the captures under reports/; here they
+        // are read from the fixtures directory. Only the path labels differ.
+        .replace("fixtures/NET-DEMO/", "reports/NET-DEMO/");
 
     if html != expected {
         let out = std::env::temp_dir().join("mw-demo-actual.html");

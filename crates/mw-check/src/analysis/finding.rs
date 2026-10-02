@@ -282,15 +282,6 @@ pub struct DeviceReport {
     pub impact_score: usize,
 }
 
-/// Outcomes of rating prefix deltas against an expectations file.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct ExpectationTotals {
-    pub as_planned: usize,
-    pub differs: usize,
-    pub unexplained: usize,
-    pub not_met: usize,
-}
-
 /// Everything the report renders.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Analysis {
@@ -299,8 +290,6 @@ pub struct Analysis {
     pub device_reports: Vec<DeviceReport>,
     pub pairs: Vec<(String, String)>,
     pub pair_findings: Vec<Finding>,
-    pub expectations_in_play: bool,
-    pub expectation_totals: ExpectationTotals,
     pub total_findings_by_classification: ClassificationCounts,
     pub impact_totals: ImpactCounts,
     /// `impact_totals` split by where the finding came from: `window_totals`

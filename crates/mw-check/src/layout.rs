@@ -10,7 +10,6 @@
 //!     Precheck/precheck_<timestamp>/<hostname>.txt   (+ .zip)
 //!     Postcheck/postcheck_<timestamp>/<hostname>.txt (+ .zip)
 //!     Compare/compare_<timestamp>.txt / .html
-//!     expectations.yml   (optional, written by hand: expected BGP deltas)
 //!     notes.md           (optional: the engineer's account of the window)
 //! ```
 //!
@@ -45,7 +44,6 @@ pub struct TicketDirs {
     pub precheck: PathBuf,
     pub postcheck: PathBuf,
     pub compare: PathBuf,
-    pub expectations: PathBuf,
     pub notes: PathBuf,
 }
 
@@ -60,7 +58,6 @@ pub fn ticket_dirs_under(reports: &Path, ticket: &str) -> TicketDirs {
         precheck: base.join("Precheck"),
         postcheck: base.join("Postcheck"),
         compare: base.join("Compare"),
-        expectations: base.join("expectations.yml"),
         notes: base.join("notes.md"),
         base,
     }
@@ -114,7 +111,6 @@ mod tests {
         assert_eq!(dirs.precheck, Path::new("/r/NET-1/Precheck"));
         assert_eq!(dirs.postcheck, Path::new("/r/NET-1/Postcheck"));
         assert_eq!(dirs.compare, Path::new("/r/NET-1/Compare"));
-        assert_eq!(dirs.expectations, Path::new("/r/NET-1/expectations.yml"));
     }
 
     #[test]

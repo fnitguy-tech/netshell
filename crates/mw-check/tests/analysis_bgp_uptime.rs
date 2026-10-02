@@ -84,7 +84,7 @@ fn summary_keeps_updown_column() {
 
 #[test]
 fn uptime_going_backwards_is_a_reset() {
-    let findings = bgp_neighbor_findings(&summary("5d02h"), &summary("00:12:33"), &[], None);
+    let findings = bgp_neighbor_findings(&summary("5d02h"), &summary("00:12:33"), &[]);
 
     assert_eq!(findings.len(), 1);
     let finding = &findings[0];
@@ -99,24 +99,24 @@ fn uptime_going_backwards_is_a_reset() {
 
 #[test]
 fn uptime_growing_is_not_a_finding() {
-    assert!(bgp_neighbor_findings(&summary("5d02h"), &summary("5d04h"), &[], None).is_empty());
-    assert!(bgp_neighbor_findings(&summary("23:59:10"), &summary("1d02h"), &[], None).is_empty());
-    assert!(bgp_neighbor_findings(&summary("6d23h"), &summary("1w0d"), &[], None).is_empty());
+    assert!(bgp_neighbor_findings(&summary("5d02h"), &summary("5d04h"), &[]).is_empty());
+    assert!(bgp_neighbor_findings(&summary("23:59:10"), &summary("1d02h"), &[]).is_empty());
+    assert!(bgp_neighbor_findings(&summary("6d23h"), &summary("1w0d"), &[]).is_empty());
 }
 
 #[test]
 fn equal_coarse_uptime_is_not_a_reset() {
     // 34d11h in both captures: the true values differ by two hours but
     // the format cannot show it, and equal is not smaller.
-    assert!(bgp_neighbor_findings(&summary("34d11h"), &summary("34d11h"), &[], None).is_empty());
+    assert!(bgp_neighbor_findings(&summary("34d11h"), &summary("34d11h"), &[]).is_empty());
 }
 
 #[test]
 fn boundary_of_coarse_format_is_not_a_reset() {
     // 1d02h means [26h, 27h); a post value of 1d02h can never be shown
     // to be below a pre value of 1d02h, only 1d01h can.
-    assert!(bgp_neighbor_findings(&summary("1d02h"), &summary("1d02h"), &[], None).is_empty());
-    let findings = bgp_neighbor_findings(&summary("1d02h"), &summary("1d01h"), &[], None);
+    assert!(bgp_neighbor_findings(&summary("1d02h"), &summary("1d02h"), &[]).is_empty());
+    let findings = bgp_neighbor_findings(&summary("1d02h"), &summary("1d01h"), &[]);
     assert_eq!(
         findings.iter().map(|f| f.title.as_str()).collect::<Vec<_>>(),
         ["BGP Session Reset"]
@@ -125,8 +125,8 @@ fn boundary_of_coarse_format_is_not_a_reset() {
 
 #[test]
 fn unparsable_uptime_never_flags() {
-    assert!(bgp_neighbor_findings(&summary("never"), &summary("00:10:00"), &[], None).is_empty());
-    assert!(bgp_neighbor_findings(&summary("5d02h"), &summary("never"), &[], None).is_empty());
+    assert!(bgp_neighbor_findings(&summary("never"), &summary("00:10:00"), &[]).is_empty());
+    assert!(bgp_neighbor_findings(&summary("5d02h"), &summary("never"), &[]).is_empty());
 }
 
 #[test]
@@ -136,7 +136,7 @@ fn reset_with_prefix_change_is_one_attention_finding() {
         vec![row("00:12:33").replace("815  815", "812  812")],
     );
 
-    let findings = bgp_neighbor_findings(&summary("5d02h"), &post, &[], None);
+    let findings = bgp_neighbor_findings(&summary("5d02h"), &post, &[]);
 
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].title, "BGP Session Reset");
@@ -187,7 +187,7 @@ fn panos_peer_reset_is_attention() {
     let pre = sections("show routing protocol bgp peer", panos_block(123456));
     let post = sections("show routing protocol bgp peer", panos_block(310));
 
-    let findings = bgp_neighbor_findings(&pre, &post, &[], None);
+    let findings = bgp_neighbor_findings(&pre, &post, &[]);
 
     assert_eq!(
         findings.iter().map(|f| f.title.as_str()).collect::<Vec<_>>(),
@@ -197,5 +197,5 @@ fn panos_peer_reset_is_attention() {
 
     // Same peer, uptime grew: nothing to report.
     let later = sections("show routing protocol bgp peer", panos_block(130000));
-    assert!(bgp_neighbor_findings(&pre, &later, &[], None).is_empty());
+    assert!(bgp_neighbor_findings(&pre, &later, &[]).is_empty());
 }

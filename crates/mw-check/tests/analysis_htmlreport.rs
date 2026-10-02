@@ -110,7 +110,7 @@ fn peer_removed_is_attention() {
     let pre = sections("show ip bgp summary", &[BGP_ESTAB]);
     let post = sections("show ip bgp summary", &[]);
 
-    let findings = bgp_neighbor_findings(&pre, &post, &[], None);
+    let findings = bgp_neighbor_findings(&pre, &post, &[]);
 
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].title, "BGP Peer Removed From Summary");
@@ -131,7 +131,7 @@ fn peer_added_is_stable() {
     let pre = sections("show ip bgp summary", &[]);
     let post = sections("show ip bgp summary", &[BGP_ESTAB]);
 
-    let findings = bgp_neighbor_findings(&pre, &post, &[], None);
+    let findings = bgp_neighbor_findings(&pre, &post, &[]);
 
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].title, "BGP Peer Added");
@@ -145,7 +145,7 @@ fn admin_shutdown_is_attention() {
     let pre = sections("show ip bgp summary", &[BGP_ESTAB]);
     let post = sections("show ip bgp summary", &[BGP_IDLE]);
 
-    let findings = bgp_neighbor_findings(&pre, &post, &[], None);
+    let findings = bgp_neighbor_findings(&pre, &post, &[]);
 
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].title, "BGP Peer Shut Down");
@@ -162,7 +162,7 @@ fn activation_is_stable_and_other_state_changes_attention() {
     let idle = sections("show ip bgp summary", &[BGP_IDLE]);
     let estab = sections("show ip bgp summary", &[BGP_ESTAB]);
 
-    let findings = bgp_neighbor_findings(&idle, &estab, &[], None);
+    let findings = bgp_neighbor_findings(&idle, &estab, &[]);
     assert_eq!(findings[0].title, "BGP Peer Activated");
     assert_eq!(findings[0].impact, Impact::Stable);
 
@@ -170,7 +170,7 @@ fn activation_is_stable_and_other_state_changes_attention() {
         "show ip bgp summary",
         &["SPINE1 203.0.113.1 4 65001 12345 12340 0 0 never Active"],
     );
-    let findings = bgp_neighbor_findings(&estab, &active, &[], None);
+    let findings = bgp_neighbor_findings(&estab, &active, &[]);
     assert_eq!(findings[0].title, "BGP Peer State Changed");
     assert_eq!(findings[0].impact, Impact::Attention);
     assert_eq!(findings[0].fields[0].after, "Active");

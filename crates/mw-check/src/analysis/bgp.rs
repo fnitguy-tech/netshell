@@ -7,17 +7,14 @@ use indexmap::IndexMap;
 use regex::Regex;
 
 use crate::capture::Sections;
-use crate::expectations::{self, Expectation, Expected};
 
 use super::finding::{BgpContext, BgpPeer, Classification, DiffLine, Field, Finding, Impact};
 use super::normalize::is_digits;
-use super::{TITLE_AS_PLANNED, TITLE_DIFFERS, TITLE_NOT_MET, TITLE_UNEXPLAINED};
 
 /// The generic caveat a prefix delta carries when nobody wrote down
 /// what the change was meant to do.
 pub const PREFIX_DELTA_HEDGE: &str = "That's normal if this window touched routing policy, communities, \
-                                      failover, or advertised routes. Write the expected count into the \
-                                      expectations file and the next run will rate it for you.";
+                                      failover, or advertised routes.";
 
 // EOS "Up/Down" column formats. The timer rolls over to a coarser unit
 // as the session ages: 00:52:40 under a day, 1d02h under a week, 2w3d
@@ -347,102 +344,24 @@ fn received_count(peer: &BgpPeer) -> i64 {
     }
 }
 
-fn note_suffix(entry: &Expectation) -> String {
-    if entry.note.is_empty() {
-        String::new()
-    } else {
-        format!(" Note: {}", entry.note)
-    }
-}
-
-/// Rate a prefix-count change against the device's expectations.
-///
-/// `expectations` is `None` when no file is in play (Changed + hedge),
-/// else the list of entries for this device, possibly empty (every
-/// delta is then either as planned, different from plan, or
-/// unexplained).
-fn prefix_delta_finding(
-    peer: &BgpPeer,
-    before: &BgpPeer,
-    after: &BgpPeer,
-    delta: i64,
-    expectations: Option<&[Expectation]>,
-    evidence: &str,
-) -> Finding {
-    let Some(expectations) = expectations else {
-        return bgp_finding(
-            Classification::Routing,
-            "BGP prefixes",
-            Impact::Changed,
-            "BGP Prefix Count Changed",
-            peer,
-            Some(before),
-            Some(after),
-            format!("Prefix count changed by {delta:+}. {PREFIX_DELTA_HEDGE}"),
-            evidence,
-        );
-    };
-
-    let Some(entry) = expectations::match_peer(expectations, peer) else {
-        return bgp_finding(
-            Classification::Routing,
-            "BGP prefixes",
-            Impact::Attention,
-            TITLE_UNEXPLAINED,
-            peer,
-            Some(before),
-            Some(after),
-            format!("Prefix count changed by {delta:+}, and no entry in your expectations file covers this peer."),
-            evidence,
-        );
-    };
-
-    let planned = expectations::describe(entry);
-    let note = note_suffix(entry);
-    let after_received = received_count(after);
-    let met = match entry.expected {
-        Expected::Delta(expected) => expected == delta,
-        Expected::Prefixes(expected) => expected == after_received,
-    };
-
-    if met {
-        return bgp_finding(
-            Classification::Routing,
-            "BGP prefixes",
-            Impact::Stable,
-            TITLE_AS_PLANNED,
-            peer,
-            Some(before),
-            Some(after),
-            format!("Prefix count changed by {delta:+}, which is what you planned for ({planned}).{note}"),
-            evidence,
-        );
-    }
-
+/// One prefix-count change, rated Changed with the generic caveat.
+fn prefix_delta_finding(peer: &BgpPeer, before: &BgpPeer, after: &BgpPeer, delta: i64, evidence: &str) -> Finding {
     bgp_finding(
         Classification::Routing,
         "BGP prefixes",
-        Impact::Attention,
-        TITLE_DIFFERS,
+        Impact::Changed,
+        "BGP Prefix Count Changed",
         peer,
         Some(before),
         Some(after),
-        format!("Prefix count changed by {delta:+}, but you planned for {planned}.{note}"),
+        format!("Prefix count changed by {delta:+}. {PREFIX_DELTA_HEDGE}"),
         evidence,
     )
 }
 
-/// Per-peer findings: state changes, prefix deltas (rated against
-/// expectations when given), resets, peers that appeared or vanished.
-///
-/// `expectations`: this device's entries from the expectations file, or
-/// `None` when no file is in play.
-pub fn bgp_neighbor_findings(
-    pre: &Sections,
-    post: &Sections,
-    config_changes: &[DiffLine],
-    expectations: Option<&[Expectation]>,
-) -> Vec<Finding> {
+/// Per-peer findings: state changes, prefix deltas, resets, peers that
+/// appeared or vanished.
+pub fn bgp_neighbor_findings(pre: &Sections, post: &Sections, config_changes: &[DiffLine]) -> Vec<Finding> {
     let pre_bgp = parse_bgp_peers_map(pre);
     let post_bgp = parse_bgp_peers_map(post);
 
@@ -576,41 +495,7 @@ pub fn bgp_neighbor_findings(
         {
             let delta = received_count(after) - received_count(before);
 
-            findings.push(prefix_delta_finding(
-                after,
-                before,
-                after,
-                delta,
-                expectations,
-                detected_evidence,
-            ));
-        } else if let Some(expectations) = expectations.filter(|entries| !entries.is_empty()) {
-            // Nothing moved on this peer. If the plan said it would, that
-            // is the change not having taken effect.
-            let after_received = received_count(after);
-            let unmet = expectations::match_peer(expectations, after).filter(|entry| match entry.expected {
-                Expected::Delta(expected) => expected != 0,
-                Expected::Prefixes(expected) => expected != after_received,
-            });
-
-            if let Some(entry) = unmet {
-                let note = note_suffix(entry);
-                let planned = expectations::describe(entry);
-                findings.push(bgp_finding(
-                    Classification::Routing,
-                    "BGP prefixes",
-                    Impact::Attention,
-                    TITLE_NOT_MET,
-                    after,
-                    Some(before),
-                    Some(after),
-                    format!(
-                        "You planned for {planned}, but the count didn't move - {after_received} received in \
-                         both captures.{note}"
-                    ),
-                    detected_evidence,
-                ));
-            }
+            findings.push(prefix_delta_finding(after, before, after, delta, detected_evidence));
         }
     }
 

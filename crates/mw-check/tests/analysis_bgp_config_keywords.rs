@@ -197,7 +197,7 @@ fn prefix_list_change_is_cited_as_evidence_for_a_prefix_delta() {
             .collect(),
     );
 
-    let findings = bgp_neighbor_findings(&pre, &post, &bgp_config_changes(&pre, &post), None);
+    let findings = bgp_neighbor_findings(&pre, &post, &bgp_config_changes(&pre, &post));
 
     assert_eq!(
         findings.iter().map(|f| f.title.as_str()).collect::<Vec<_>>(),
@@ -227,7 +227,7 @@ fn shutdown_and_route_map_evidence() {
         ]),
     );
 
-    let findings = bgp_neighbor_findings(&pre, &post, &bgp_config_changes(&pre, &post), None);
+    let findings = bgp_neighbor_findings(&pre, &post, &bgp_config_changes(&pre, &post));
     assert_eq!(findings[0].title, "BGP Peer Shut Down");
     assert_eq!(
         findings[0].evidence,
@@ -243,7 +243,7 @@ fn shutdown_and_route_map_evidence() {
             "   neighbor 198.51.100.9 route-map ISP-IN in",
         ]),
     );
-    let findings = bgp_neighbor_findings(&pre, &post, &bgp_config_changes(&pre, &post), None);
+    let findings = bgp_neighbor_findings(&pre, &post, &bgp_config_changes(&pre, &post));
     assert_eq!(findings[0].title, "BGP Prefix Count Changed");
     assert_eq!(
         findings[0].evidence,

@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use mw_check::analysis::{
-    Analysis, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, ExpectationTotals, Field,
-    Finding, Impact, ImpactCounts,
+    Analysis, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, Field, Finding, Impact,
+    ImpactCounts,
 };
 use mw_check::report::render_html_at;
 
@@ -182,11 +182,11 @@ fn demo_analysis() -> Analysis {
     let site_a_sw_2 = report(
         "SITE-A-SW-2",
         vec![bgp_finding(
-            Impact::Stable,
-            "BGP Prefix Count Changed As Planned",
+            Impact::Changed,
+            "BGP Prefix Count Changed",
             ("SITE-A-SW-1", "10.0.0.1", "64500"),
             [("Estab", "Estab"), ("812", "815"), ("812", "815"), ("34d11h", "34d11h")],
-            "Prefix count changed by +3, which is what you planned for (a change of +3). Note: SITE-A-SW-1 re-advertises the three ISP-B transit prefixes over iBGP",
+            "Prefix count changed by +3. That's normal if this window touched routing policy, communities, failover, or advertised routes.",
             "show ip bgp summary",
         )],
         vec![],
@@ -198,7 +198,7 @@ fn demo_analysis() -> Analysis {
                 ("show vlan brief", "show vlan brief"),
             ],
         ),
-        (1, 0, 1),
+        (1, 0, 2),
     );
 
     let site_a_fw_1 = report(
@@ -227,8 +227,8 @@ fn demo_analysis() -> Analysis {
     }
 
     let mut impact_totals = ImpactCounts::default();
-    impact_totals.add(Impact::Stable, 2);
-    impact_totals.add(Impact::Changed, 6);
+    impact_totals.add(Impact::Stable, 1);
+    impact_totals.add(Impact::Changed, 7);
     impact_totals.add(Impact::Attention, 1);
 
     // The demo has no pair-symmetry findings, so the window carries all of it.
@@ -242,13 +242,6 @@ fn demo_analysis() -> Analysis {
         device_reports: vec![site_a_sw_1, site_a_sw_2, site_a_fw_1, site_b_sw_1],
         pairs: vec![("SITE-A-SW-1".to_string(), "SITE-A-SW-2".to_string())],
         pair_findings: Vec::new(),
-        expectations_in_play: true,
-        expectation_totals: ExpectationTotals {
-            as_planned: 1,
-            differs: 0,
-            unexplained: 0,
-            not_met: 0,
-        },
         total_findings_by_classification: by_classification,
         impact_totals,
         window_totals,
@@ -289,7 +282,6 @@ fn demo_report_is_byte_identical_to_the_python_report() {
         Path::new("reports/NET-DEMO/Precheck/precheck_2026-04-14_08-48"),
         Path::new("reports/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42"),
         &demo_analysis(),
-        Some("docs/demo/NET-DEMO/expectations.yml"),
         None,
         generated,
     );

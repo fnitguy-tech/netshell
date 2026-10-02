@@ -514,7 +514,6 @@ details .diff-box {
         <div class="meta-pill">Ticket: NET-DEMO</div>
         <div class="meta-pill">Precheck: reports/NET-DEMO/Precheck/precheck_2026-04-14_08-48</div>
         <div class="meta-pill">Postcheck: reports/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42</div>
-        <div class="meta-pill">Expectations: docs/demo/NET-DEMO/expectations.yml</div>
     </div>
 </div>
 
@@ -523,7 +522,7 @@ details .diff-box {
         <a class="card clickable" href="#device-findings"><div class="label">Network Health</div><div class="value health-attention">Attention</div></a>
         <a class="card clickable" href="#device-findings"><div class="label">Devices Checked</div><div class="value">4</div></a>
         <a class="card clickable" href="#device-findings"><div class="label">Devices With Findings</div><div class="value">2</div></a>
-        <a class="card clickable" href="#device-findings"><div class="label">Changed</div><div class="value">6</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Changed</div><div class="value">7</div></a>
         <a class="card clickable" href="#attention-items"><div class="label">Attention</div><div class="value health-attention">1</div></a>
         <a class="card clickable" href="#attention-items"><div class="label">Pair Symmetry</div><div class="value">0</div></a>
     </div>
@@ -545,7 +544,6 @@ details .diff-box {
 <li>1 interface item(s).</li>
 <li>2 layer 2 item(s).</li>
 <li>1 evidence only item(s).</li>
-<li>Against your expectations file: 1 as planned, 0 missed the plan, 0 with no plan, 0 planned change(s) that never happened.</li>
 
                 </ul>
             </div>
@@ -790,17 +788,17 @@ details .diff-box {
     <div id="device-site-a-sw-2" class="device">
         <div class="device-header">
             <div class="device-name">SITE-A-SW-2.txt</div>
-            <div class="device-summary">Findings: 1 | Impact Score: 1 | Evidence Sections: 3</div>
+            <div class="device-summary">Findings: 1 | Impact Score: 2 | Evidence Sections: 3</div>
         </div>
 
         <div class="section">
             <h3>Protocol / Routing Interpretation</h3>
     
 
-    <div class="finding stable">
+    <div class="finding changed">
         <div class="finding-title">
-            <span class="badge badge-stable">Stable</span>
-            <span class="finding-heading">BGP Prefix Count Changed As Planned</span>
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
             <span class="peer-name">SITE-A-SW-1</span>
             <span class="peer-ip">10.0.0.1</span>
             <span class="peer-ip">AS64500</span>
@@ -826,7 +824,7 @@ details .diff-box {
             </div>
         </div>
 
-        <div class="explanation">Prefix count changed by +3, which is what you planned for (a change of +3). Note: SITE-A-SW-1 re-advertises the three ISP-B transit prefixes over iBGP</div>
+        <div class="explanation">Prefix count changed by +3. That&#x27;s normal if this window touched routing policy, communities, failover, or advertised routes.</div>
         <div class="evidence">Evidence: show ip bgp summary</div>
         
     </div>
@@ -963,18 +961,18 @@ details .diff-box {
 </div>
 
 <div class="footer">
-    Generated 2026-10-02 20:27:56 | Maintenance Report
+    Generated 2026-10-02 20:50:43 | Maintenance Report
 </div>
 
 <script>
 const healthLabels = ["Stable", "Changed", "Attention", "Action Required"];
-const healthValues = [2, 6, 1, 0];
+const healthValues = [1, 7, 1, 0];
 
 const categoryLabels = ["Configuration", "Protocol", "Routing", "Interface", "Layer 2", "Firewall", "System", "Evidence only"];
 const categoryValues = [9, 4, 2, 1, 2, 0, 0, 1];
 
 const deviceLabels = ["SITE-A-SW-1", "SITE-A-SW-2", "SITE-A-FW-1", "SITE-B-SW-1"];
-const deviceImpact = [22, 1, 0, 0];
+const deviceImpact = [22, 2, 0, 0];
 
 Chart.defaults.color = "#cbd5e1";
 Chart.defaults.borderColor = "rgba(148, 163, 184, 0.18)";

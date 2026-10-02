@@ -30,7 +30,6 @@ pub mod capture;
 pub mod collect;
 pub mod commands;
 pub mod difflib;
-pub mod expectations;
 pub mod inventory;
 pub mod layout;
 pub mod notes;

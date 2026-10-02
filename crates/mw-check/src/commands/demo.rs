@@ -27,7 +27,7 @@ use anyhow::{Context, anyhow};
 use crate::capture::{self, HEADER, Sections};
 use crate::collect::{self, Connector, Session, capitalize, run_collection};
 use crate::inventory::{DeviceSpec, Job};
-use crate::{expectations, layout, report, textcompare};
+use crate::{layout, report, textcompare};
 
 pub const TICKET: &str = "NET-DEMO";
 
@@ -101,10 +101,6 @@ const EMBEDDED_FIXTURES: &[(&str, &str)] = &[
     (
         "NET-DEMO/SCENARIO.md",
         include_str!("../../fixtures/NET-DEMO/SCENARIO.md"),
-    ),
-    (
-        "NET-DEMO/expectations.yml",
-        include_str!("../../fixtures/NET-DEMO/expectations.yml"),
     ),
     (
         "devices.example.yml",
@@ -326,14 +322,7 @@ pub fn run(args: Args) -> anyhow::Result<()> {
     let run_timestamp = layout::timestamp();
     textcompare::write_compare_report(TICKET, &dirs, &run_timestamp)?;
 
-    // The scenario's expected BGP deltas, so the report can say "as
-    // planned" instead of hedging. In a real window this file is written
-    // by hand next to the captures: reports/<TICKET>/expectations.yml.
-    let expectations_path = fixtures.join(TICKET).join("expectations.yml");
-    let expected = expectations::load_expectations(&expectations_path, Some(TICKET))?;
-    let label = shown(&expectations_path);
-    println!("Expectations: {label} ({} entries)", expected.len());
-    report::build_html_report(TICKET, &dirs, &run_timestamp, None, Some(&expected), Some(&label), None)?;
+    report::build_html_report(TICKET, &dirs, &run_timestamp, None, None)?;
 
     Ok(())
 }
@@ -345,7 +334,6 @@ mod tests {
     #[test]
     fn embedded_fixtures_unpack_to_a_usable_dataset() {
         let dir = unpack_embedded_fixtures().unwrap();
-        assert!(dir.join("NET-DEMO/expectations.yml").is_file());
         assert!(dir.join("devices.example.yml").is_file());
         let jobs = demo_jobs_in(&dir).unwrap();
         assert_eq!(jobs.len(), DEVICES.len());

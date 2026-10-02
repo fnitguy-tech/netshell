@@ -3,9 +3,9 @@
 //!
 //! The pipeline mirrors the Python `htmlreport.analyze()`:
 //!
-//! 1. per device: BGP neighbour findings (with config-change context
-//!    and optional expectations), prefix-list findings, interface
-//!    findings, and the normalized raw diff of every command;
+//! 1. per device: BGP neighbour findings with config-change context,
+//!    prefix-list findings, interface findings, and the normalized raw
+//!    diff of every command;
 //! 2. pair symmetry findings across each redundant pair, attributed to
 //!    both members but counted once;
 //! 3. counts, weighted impact score, totals and ordering.
@@ -22,31 +22,19 @@ pub mod rawdiff;
 use std::path::Path;
 
 pub use finding::{
-    Analysis, BgpContext, BgpPeer, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine,
-    ExpectationTotals, Field, Finding, Impact, ImpactCounts,
+    Analysis, BgpContext, BgpPeer, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, Field,
+    Finding, Impact, ImpactCounts,
 };
-
-use crate::expectations::Expectation;
-
-/// Titles produced by the expectation rating, so the outcome summary
-/// can say "23 as planned, 1 unexplained".
-pub const TITLE_AS_PLANNED: &str = "BGP Prefix Count Changed As Planned";
-pub const TITLE_DIFFERS: &str = "BGP Prefix Count Missed The Plan";
-pub const TITLE_UNEXPLAINED: &str = "BGP Prefix Count Changed With No Plan";
-pub const TITLE_NOT_MET: &str = "Planned BGP Prefix Change Never Happened";
 
 /// Diff every common device file between the two run folders and roll
 /// up findings and totals.
 ///
 /// `pairs`: explicit pairs from the inventory; pairs whose hostnames
 /// differ only by a trailing number are inferred anyway.
-/// `expectations`: entries from the expectations file, or `None` when
-/// no file is in play (prefix deltas then keep the generic hedge).
 pub fn analyze(
     precheck_folder: &Path,
     postcheck_folder: &Path,
     pairs: Option<&[(String, String)]>,
-    expectations: Option<&[Expectation]>,
 ) -> anyhow::Result<Analysis> {
     use std::collections::BTreeSet;
 
@@ -90,18 +78,7 @@ pub fn analyze(
 
         let hostname = file_name.replace(".txt", "");
         let config_changes = config::bgp_config_changes(&pre_sections, &post_sections);
-        let device_expectations: Option<Vec<Expectation>> = expectations.map(|entries| {
-            crate::expectations::for_device(entries, &hostname)
-                .into_iter()
-                .cloned()
-                .collect()
-        });
-        let mut findings = bgp::bgp_neighbor_findings(
-            &pre_sections,
-            &post_sections,
-            &config_changes,
-            device_expectations.as_deref(),
-        );
+        let mut findings = bgp::bgp_neighbor_findings(&pre_sections, &post_sections, &config_changes);
         findings.extend(prefix_list::prefix_list_findings(&pre_sections, &post_sections));
         findings.extend(interfaces::interface_findings(&pre_sections, &post_sections));
         let diffs = rawdiff::raw_diffs(&pre_sections, &post_sections);
@@ -145,7 +122,6 @@ pub fn analyze(
     // Pass 3: counts, scores and totals.
     let mut device_reports = Vec::new();
     let mut devices_with_findings = 0;
-    let mut expectation_totals = ExpectationTotals::default();
 
     for (hostname, device) in devices {
         let findings = device.findings;
@@ -176,14 +152,6 @@ pub fn analyze(
                 symmetry_totals.add(finding.impact, 1);
             } else {
                 window_totals.add(finding.impact, 1);
-            }
-
-            match finding.title.as_str() {
-                TITLE_AS_PLANNED => expectation_totals.as_planned += 1,
-                TITLE_DIFFERS => expectation_totals.differs += 1,
-                TITLE_UNEXPLAINED => expectation_totals.unexplained += 1,
-                TITLE_NOT_MET => expectation_totals.not_met += 1,
-                _ => {}
             }
         }
 
@@ -247,8 +215,6 @@ pub fn analyze(
         device_reports,
         pairs: resolved_pairs,
         pair_findings: all_pair_findings,
-        expectations_in_play: expectations.is_some(),
-        expectation_totals,
         total_findings_by_classification,
         impact_totals,
         window_totals,
