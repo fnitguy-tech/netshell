@@ -16,7 +16,7 @@ use crate::capture::Sections;
 use super::finding::{Classification, Field, Finding, Impact};
 
 /// The category every interface finding carries.
-pub const CATEGORY: &str = "Interface";
+pub const CATEGORY: &str = "Interface address";
 
 static IPV4_PREFIX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d+\.\d+\.\d+\.\d+/\d+$").unwrap());
 

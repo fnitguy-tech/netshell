@@ -187,7 +187,7 @@ fn newly_addressed_interface_that_is_down_is_attention() {
     assert_eq!(finding.title, "Newly Addressed Interface Down");
     assert_eq!(finding.impact, Impact::Attention);
     assert_eq!(finding.classification, Classification::Interface);
-    assert_eq!(finding.category, "Interface");
+    assert_eq!(finding.category, "Interface address");
     assert_eq!(finding.subject, ["Ethernet50/1", "198.51.100.10/30"]);
     assert!(
         finding

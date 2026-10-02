@@ -21,7 +21,7 @@ pub const SHOW_PREFIX_LIST: &str = "show ip prefix-list";
 pub const SHOW_RUNNING_CONFIG: &str = "show running-config";
 
 /// The category every prefix-list finding carries.
-pub const CATEGORY: &str = "Prefix list";
+pub const CATEGORY: &str = "Prefix-list";
 
 /// "ip prefix-list NAME" opens a list in both the EOS show output and
 /// the running config; the one-line config form carries the entry on
