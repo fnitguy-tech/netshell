@@ -211,7 +211,7 @@ fn newly_addressed_interface_that_is_up_is_stable() {
     let findings = interface_findings(&pre, &post);
 
     let rated: Vec<(&str, Impact)> = findings.iter().map(|f| (f.title.as_str(), f.impact)).collect();
-    assert_eq!(rated, [("Newly Addressed Interface Up", Impact::Stable)]);
+    assert_eq!(rated, [("New Address, Interface Up", Impact::Stable)]);
     assert!(
         findings[0]
             .fields

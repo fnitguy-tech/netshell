@@ -4,7 +4,7 @@
 //! Off by default. `mw before` / `post` enable it with
 //! `-r`, and the collector then runs every command's
 //! output through [`scrub`] before it is written to disk, so the
-//! capture files, the zips and every report built from them never
+//! capture files, the zips, and every report built from them never
 //! contain a credential.
 //!
 //! Each rule keeps the keyword and any type marker (`secret sha512`,

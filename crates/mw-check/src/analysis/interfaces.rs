@@ -347,7 +347,7 @@ pub fn interface_findings(pre: &Sections, post: &Sections) -> Vec<Finding> {
         let (impact, title, summary) = if status == "up" {
             (
                 Impact::Stable,
-                "Newly Addressed Interface Up",
+                "New Address, Interface Up",
                 format!("{name} gained {address} during the window and is up in the postcheck."),
             )
         } else {

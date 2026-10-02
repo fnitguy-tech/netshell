@@ -14,7 +14,7 @@ same `reports/` tree.
 SSH goes through the [`netshell`](../netshell/) crate instead of netmiko.
 Every command it runs is a read-only `show`.
 
-The full guide, with screenshots, install options and the inventory
+The full guide, with screenshots, install options, and the inventory
 and expectations formats, is the
 [repository README](../../README.md). In short:
 

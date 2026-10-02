@@ -354,7 +354,7 @@ fn stable_network_verdict() {
     assert!(page.contains("<div class=\"label\">Attention</div><div class=\"value health-attention\">0</div>"));
     assert!(page.contains("Findings: 0 | Impact Score: 0 | Evidence Sections: 0"));
     assert!(page.contains(
-        "<p class=\"empty\">No meaningful BGP neighbor, prefix, prefix-list or interface address changes detected.</p>"
+        "<p class=\"empty\">No meaningful BGP neighbor, prefix, prefix-list, or interface address changes detected.</p>"
     ));
     assert!(page.contains("<p class=\"empty\">No BGP-related config changes detected.</p>"));
     assert!(page.contains("<p class=\"empty\">No raw differences detected.</p>"));
@@ -524,7 +524,7 @@ fn expectations_line_and_header_pill() {
         Classification::Protocol,
         "BGP",
         Impact::Attention,
-        "BGP Prefix Count Changed Unexpectedly",
+        "BGP Prefix Count Changed With No Plan",
     );
     let mut analysis = analysis(vec![device(
         "SITE-A-SW-1",
@@ -544,14 +544,14 @@ fn expectations_line_and_header_pill() {
     let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label));
     assert!(page.contains("<div class=\"meta-pill\">Expectations: reports/NET-5/expectations.yml</div>"));
     assert!(page.contains(
-        "<li>BGP prefix deltas against the expectations file: 1 as planned, 0 different from plan, 1 unexplained, 0 expected change(s) that did not happen.</li>"
+        "<li>Against your expectations file: 1 as planned, 0 missed the plan, 1 with no plan, 0 planned change(s) that never happened.</li>"
     ));
-    assert!(page.contains("1 as planned, 0 different from plan, 1 unexplained"));
+    assert!(page.contains("1 as planned, 0 missed the plan, 1 with no plan"));
     assert!(page.contains("BGP Prefix Count Changed As Planned"));
-    assert!(page.contains("BGP Prefix Count Changed Unexpectedly"));
+    assert!(page.contains("BGP Prefix Count Changed With No Plan"));
     assert!(page.contains("health-attention\">Attention"));
     // The outcome line comes after the category items.
-    assert_in_order(&page, &["protocol item(s).", "BGP prefix deltas against"]);
+    assert_in_order(&page, &["protocol item(s).", "Against your expectations file:"]);
 
     let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, None);
     assert!(page.contains("<div class=\"meta-pill\">Expectations: provided</div>"));
@@ -559,7 +559,7 @@ fn expectations_line_and_header_pill() {
     analysis.expectations_in_play = false;
     let page = render_html("NET-5", Path::new(PRE), Path::new(POST), &analysis, Some(label));
     assert!(!page.contains("Expectations:"));
-    assert!(!page.contains("BGP prefix deltas against"));
+    assert!(!page.contains("Against your expectations file:"));
 }
 
 #[test]

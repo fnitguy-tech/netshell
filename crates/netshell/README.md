@@ -3,9 +3,10 @@
 [![ci](https://github.com/fnitguy-tech/netshell/actions/workflows/ci.yml/badge.svg)](https://github.com/fnitguy-tech/netshell/actions/workflows/ci.yml)
 
 A netmiko-style SSH shell driver for network devices, in Rust. Open an
-interactive shell, turn paging off, send a `show` command, get the
-output back with the echo and the prompt removed. That is the whole
-job, and it is the part of netmiko that tools like
+interactive shell, turn paging off, send a `show` command, and get the
+output back with the echo and the prompt stripped.
+
+That's the whole job. It's also the part of netmiko that tools like
 [prepost-check](https://github.com/fnitguy-tech/prepost-check) actually
 use.
 
@@ -26,20 +27,21 @@ the latter. The Junos profile escapes a root login's FreeBSD shell with
 
 ## Status
 
-The driver is exercised in CI against a fake SSH server
-(`tests/common/mod.rs`) that plays each platform's banner, prompt,
-paging and command outputs, including PAN-OS's slow first prompt and
-HA suffix, Junos's `{master:0}` status line, and output that only
-returns to the prompt once paging is off.
+CI runs the driver against a fake SSH server (`tests/common/mod.rs`)
+that plays each platform's banner, prompt, paging, and command output.
+That includes the awkward cases: PAN-OS's slow first prompt and HA
+suffix, Junos's `{master:0}` status line, and output that only returns
+to the prompt once paging is off.
 
-It has **not yet been validated against real hardware.** Prompt
-shapes, login banners and timing are exactly where shell drivers
-break. Run it against one box of each type before trusting it in a
-maintenance window, and open an issue with the raw output if a prompt
-is not recognised.
+It has **not yet been validated against real hardware.** Prompt shapes,
+login banners, and timing are exactly where shell drivers break.
 
-Out of scope on purpose: config mode, Telnet, SCP, TextFSM parsing and
-the other 140-odd netmiko platforms. Any of them can be added; none is
+So run it against one box of each type before you trust it in a
+maintenance window. If a prompt isn't recognised, open an issue with the
+raw output.
+
+Out of scope on purpose: config mode, Telnet, SCP, TextFSM parsing, and
+the other 140-odd netmiko platforms. Any of them could be added. None is
 needed for read-only state capture.
 
 ## Command line
@@ -49,16 +51,19 @@ netshell --platform arista_eos --host 192.0.2.11 --username admin \
     "show version" "show ip bgp summary" "show running-config"
 ```
 
-The password is prompted for, or read from an environment variable
-named with `--password-env VAR`. It is never a flag. Output is written
-in the `### command ###` section format prepost-check captures use, or
-as JSON with `--json`. `--fingerprint SHA256:...` refuses to connect
-unless the host key matches; without it any host key is accepted, which
-is netmiko's default too. `--read-timeout` (seconds, default 60) is the
-wait for each command's prompt to come back; raise it for
-`show ip bgp` on a full table.
+The password is prompted for, or read from an environment variable you
+name with `--password-env VAR`. It's never a flag.
 
-Binaries for Linux, Windows and macOS are attached to each
+Output uses the `### command ###` section format prepost-check captures
+use, or JSON with `--json`.
+
+`--fingerprint SHA256:...` refuses to connect unless the host key
+matches. Without it, any host key is accepted - netmiko's default too.
+`--read-timeout` (seconds, default 60) is how long to wait for each
+command's prompt to come back. Raise it for `show ip bgp` on a full
+table.
+
+Binaries for Linux, Windows, and macOS are attached to each
 [release](https://github.com/fnitguy-tech/netshell/releases). No Python,
 no venv.
 
@@ -85,9 +90,10 @@ the same methods for callers that drive one device per thread.
 prompt, for confirmations. `find_prompt` re-learns the prompt if you
 changed mode by hand.
 
-A platform that is not built in is a `Platform` struct literal: the
-prompt terminator class, the preparation commands, an optional shell
-escape and an optional prompt preamble pattern. See `src/platform.rs`.
+A platform that isn't built in is a `Platform` struct literal. You give
+it the prompt terminator class, the preparation commands, an optional
+shell escape, and an optional prompt preamble pattern. See
+`src/platform.rs`.
 
 ## Building
 
@@ -96,9 +102,9 @@ cargo build --release
 cargo test
 ```
 
-Pure Rust (`russh` with `ring`), so a C compiler is the only thing
-needed beyond the toolchain, and cross-compiling to a single Windows
-binary needs no OpenSSL.
+Pure Rust (`russh` with `ring`). A C compiler is all you need beyond the
+toolchain, and cross-compiling to a single Windows binary needs no
+OpenSSL.
 
 ## License
 

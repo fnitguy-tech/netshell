@@ -392,7 +392,7 @@ fn prefix_delta_finding(
             peer,
             Some(before),
             Some(after),
-            format!("Prefix count changed by {delta:+} and no entry in the expectations file covers this peer."),
+            format!("Prefix count changed by {delta:+}, and no entry in your expectations file covers this peer."),
             evidence,
         );
     };
@@ -605,8 +605,8 @@ pub fn bgp_neighbor_findings(
                     Some(before),
                     Some(after),
                     format!(
-                        "The expectation was {planned}, but the prefix count did not \
-                         change ({after_received} received in both captures).{note}"
+                        "You planned for {planned}, but the count didn't move - {after_received} received in \
+                         both captures.{note}"
                     ),
                     detected_evidence,
                 ));

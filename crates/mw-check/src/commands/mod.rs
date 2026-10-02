@@ -21,7 +21,7 @@ pub struct CaptureArgs {
     #[arg(short, long, value_name = "FILE")]
     pub inventory: Option<std::path::PathBuf>,
 
-    /// Strip passwords, hashes, SNMP communities and keys from the capture
+    /// Strip passwords, hashes, SNMP communities, and keys from the capture
     #[arg(short, long, alias = "redact-secrets")]
     pub redact: bool,
 }

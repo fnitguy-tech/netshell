@@ -62,7 +62,7 @@ pub fn badge_class(impact: Impact) -> &'static str {
 }
 
 /// Render one finding of any kind: badge, title, subject spans, the
-/// before/after grid built from its fields, summary, evidence and any
+/// before/after grid built from its fields, summary, evidence, and any
 /// raw detail lines.
 pub fn render_finding(finding: &Finding) -> String {
     let impact = finding.impact;
@@ -170,7 +170,8 @@ pub fn summary_items(analysis: &Analysis) -> Vec<String> {
     if analysis.expectations_in_play {
         let totals = &analysis.expectation_totals;
         items.push(format!(
-            "BGP prefix deltas against the expectations file: {} as planned, {} different from plan, {} unexplained, {} expected change(s) that did not happen.",
+            "Against your expectations file: {} as planned, {} missed the plan, {} with no plan, {} planned \
+             change(s) that never happened.",
             totals.as_planned, totals.differs, totals.unexplained, totals.not_met
         ));
     }
@@ -494,7 +495,7 @@ pub fn render_html_at(
 
         if report.findings.is_empty() {
             parts.push(
-                "<p class=\"empty\">No meaningful BGP neighbor, prefix, prefix-list or interface address changes detected.</p>"
+                "<p class=\"empty\">No meaningful BGP neighbor, prefix, prefix-list, or interface address changes detected.</p>"
                     .to_string(),
             );
         } else {

@@ -7,9 +7,10 @@
 [![crates.io](https://img.shields.io/crates/v/mw-check?label=mw-check)](https://crates.io/crates/mw-check)
 
 **Maintenance window check.** Capture your network devices before a
-change, capture them again after, and get told what actually changed:
-a quick text diff for the on-call view, and an interpreted HTML report
-with impact-rated findings for everyone else.
+change, capture them again after, and get told what actually changed.
+
+You get a quick text diff for the on-call view, and an interpreted HTML
+report with impact-rated findings for everyone else.
 
 ```text
 mw before NET-123 -r      capture before the change, secrets stripped
@@ -66,7 +67,7 @@ build provenance attestation:
 gh attestation verify mw-windows-x86_64.exe --owner fnitguy-tech
 ```
 
-The binaries are not code-signed yet, so a direct download gets the
+The binaries aren't code-signed yet, so a direct download gets the
 SmartScreen prompt on first run on Windows; a Scoop or cargo install
 does not.
 
@@ -162,25 +163,27 @@ rule that strips the churn, so what's left is real change. On top of
 that, the report understands:
 
 - **BGP peers.** Summary tables (EOS, IOS, NX-OS) and PAN-OS peer
-  blocks are parsed into per-peer state, prefix counts and uptime. A
+  blocks are parsed into per-peer state, prefix counts, and uptime. A
   peer going `Estab → Idle(Admin)` right after a `neighbor x.x.x.x
   shutdown` line appeared in the config is one finding with its
   evidence. A session whose uptime went *backwards* is a reset, even
   when it reads `Estab → Estab`. Prefix deltas cite the prefix-list,
   route-map and policy lines that changed.
-- **Prefix lists**, entry by entry. A withdrawn permit or a
-  same-sequence overwrite (the classic Arista replace-by-sequence
-  mistake) is `Attention`; a resequenced entry `Changed`; an added one
-  `Stable`.
-- **Pair symmetry.** The two members of a redundant pair are compared
-  against each other: same-named prefix-lists, route-maps and PAN-OS HA
+- **Prefix lists**, entry by entry. A removed permit is `Attention`, and
+  so is an entry replaced at the same sequence number - the classic
+  Arista replace-by-sequence trap. An entry that just moved is `Changed`.
+  A new one is `Stable`.
+- **Pair symmetry.** The two members of a redundant pair get compared
+  against each other: same-named prefix-lists, route-maps, and PAN-OS HA
   state. "SW-1 and SW-2 now disagree" is invisible to a per-device
-  report, so it gets its own section near the top.
+  report, so it gets its own section near the top. Route-map comparison
+  skips the knobs a pair is meant to differ in, like prepend depth and
+  local-preference.
 - **Interfaces** that gained an address during the window and are still
-  down: the step configured cleanly and still does not work.
+  down. The config is fine and the link isn't.
 - **Expectations.** Write down what the change should do to prefix
-  counts and the report rates each delta as planned, different,
-  unexplained or not happened, instead of hedging on all of them.
+  counts. The report then rates each delta as planned, missed the plan,
+  with no plan, or never happened - instead of hedging on all of them.
 
 ![Interpreted BGP findings with impact ratings and before/after state](docs/img/report-findings.png)
 
@@ -211,9 +214,10 @@ platforms:
 ```
 
 The example inventory carries curated command lists for Arista EOS and
-PAN-OS, including IPsec/IKE tunnel state and LSVPN hub/satellite
-status, normalized so SPIs, rekey timers and satellite login times
-never show up as changes but a tunnel going `active → init` does.
+PAN-OS. The PAN-OS list adds IPsec/IKE tunnel state and LSVPN
+hub/satellite status. Those are normalized, so SPIs, rekey timers, and
+satellite login times never read as changes - but a tunnel going
+`active → init` does.
 
 **Redundant pairs.** Hostnames that differ only by a trailing number
 are paired automatically. Pairs not named that way go in an optional
@@ -293,9 +297,9 @@ Windows binary needs no OpenSSL.
 
 The 200-odd tests all run offline. The netshell tests talk to an
 in-process fake SSH server that plays each platform's prompt and paging
-behaviour. The mw tests check every rule against synthetic captures, and
-they check the bundled demo against the report the original Python tool
-produced from it - byte for byte.
+behaviour. The mw tests check every rule against synthetic captures. They also
+check the bundled demo against the report the original Python tool
+produced from it, byte for byte.
 
 ## Status
 

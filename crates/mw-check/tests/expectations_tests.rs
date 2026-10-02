@@ -288,7 +288,7 @@ fn delta_with_no_entry_is_unexplained_attention() {
     assert!(!findings[0].summary.contains(PREFIX_DELTA_HEDGE));
     assert_eq!(
         findings[0].summary,
-        "Prefix count changed by +3 and no entry in the expectations file covers this peer."
+        "Prefix count changed by +3, and no entry in your expectations file covers this peer."
     );
 
     // An empty list (file present, nothing for this device) is the same.
@@ -305,7 +305,7 @@ fn expected_change_that_did_not_happen_is_attention() {
     assert_eq!(titles_and_impacts(&findings), [(TITLE_NOT_MET, Impact::Attention)]);
     assert_eq!(
         findings[0].summary,
-        "The expectation was a change of +3, but the prefix count did not change (812 received in both captures)."
+        "You planned for a change of +3, but the count didn't move - 812 received in both captures."
     );
 
     // An expectation of "no change" or of the count it already has is met.

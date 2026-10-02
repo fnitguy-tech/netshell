@@ -31,9 +31,9 @@ use crate::expectations::Expectation;
 /// Titles produced by the expectation rating, so the outcome summary
 /// can say "23 as planned, 1 unexplained".
 pub const TITLE_AS_PLANNED: &str = "BGP Prefix Count Changed As Planned";
-pub const TITLE_DIFFERS: &str = "BGP Prefix Count Differs From Expectation";
-pub const TITLE_UNEXPLAINED: &str = "BGP Prefix Count Changed Unexpectedly";
-pub const TITLE_NOT_MET: &str = "Expected BGP Prefix Change Did Not Happen";
+pub const TITLE_DIFFERS: &str = "BGP Prefix Count Missed The Plan";
+pub const TITLE_UNEXPLAINED: &str = "BGP Prefix Count Changed With No Plan";
+pub const TITLE_NOT_MET: &str = "Planned BGP Prefix Change Never Happened";
 
 /// Diff every common device file between the two run folders and roll
 /// up findings and totals.
