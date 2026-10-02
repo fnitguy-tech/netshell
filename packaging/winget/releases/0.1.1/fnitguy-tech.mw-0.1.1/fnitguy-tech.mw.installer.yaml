@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: fnitguy-tech.mw
+PackageVersion: "0.1.1"
+InstallerType: portable
+Commands:
+  - mw
+Installers:
+  - Architecture: x64
+    InstallerUrl: "https://github.com/fnitguy-tech/netshell/releases/download/v0.1.1/mw-windows-x86_64.exe"
+    InstallerSha256: "a747c5f2f7c76687a535fdebefa4b06945b7517da2932fb1837179bd5d6b5dc4"
+ManifestType: installer
+ManifestVersion: 1.6.0
