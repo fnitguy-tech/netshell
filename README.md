@@ -1,5 +1,7 @@
 # netshell
 
+<img src="assets/mw.png" width="48" align="left" alt="mw icon"> <img src="assets/netshell.png" width="48" align="left" alt="netshell icon">
+
 [![ci](https://github.com/fnitguy-tech/netshell/actions/workflows/ci.yml/badge.svg)](https://github.com/fnitguy-tech/netshell/actions/workflows/ci.yml)
 
 Network maintenance tooling in Rust, as two crates in one workspace:
@@ -17,6 +19,10 @@ Python, no venv, nothing to install.
 cargo build --release --workspace
 cargo test --workspace
 ```
+
+The Windows executables carry their icons and version info, embedded
+by each crate's `build.rs` from the `.ico` files that
+`assets/icons.py` draws (Pillow; rerun it to change the artwork).
 
 Pure Rust (`russh` with `ring`), so a C compiler is the only thing
 needed beyond the toolchain, and cross-compiling to a single Windows
