@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: fnitguy-tech.netshell
+PackageVersion: "0.1.0"
+PackageLocale: en-US
+Publisher: fnitguy-tech
+PublisherUrl: https://github.com/fnitguy-tech
+PublisherSupportUrl: https://github.com/fnitguy-tech/netshell/issues
+PackageName: netshell
+PackageUrl: https://github.com/fnitguy-tech/netshell
+License: MIT
+LicenseUrl: https://github.com/fnitguy-tech/netshell/blob/main/LICENSE
+ShortDescription: Run show commands on network devices over SSH
+Description: A netmiko-style SSH shell driver for Arista EOS, Cisco IOS/NX-OS/IOS-XR, Juniper Junos and Palo Alto PAN-OS. Opens a shell, turns paging off, runs show commands and prints the output as capture sections or JSON.
+Tags:
+  - network
+  - ssh
+  - arista
+  - cisco
+  - juniper
+  - panos
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
