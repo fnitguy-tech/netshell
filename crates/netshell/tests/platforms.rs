@@ -324,3 +324,13 @@ async fn cli_binary_writes_capture_sections_and_json() {
         "{text}"
     );
 }
+
+#[tokio::test]
+async fn legacy_device_with_only_sha1_and_nist_curves() {
+    let mut spec = Spec::new("OLD-SW-1#").output("show version", "Cisco IOS 12.4");
+    spec.legacy_only = true;
+    let fake = start(spec).await;
+
+    let mut device = connect(&fake, "cisco_ios").await;
+    assert_eq!(device.send_command("show version").await.unwrap(), "Cisco IOS 12.4");
+}

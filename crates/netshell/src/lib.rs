@@ -48,7 +48,7 @@ mod device;
 mod error;
 mod platform;
 
-pub use device::{ConnectOptions, Device, HostKeyPolicy, clean_output, strip_ansi};
+pub use device::{ConnectOptions, Device, HostKeyPolicy, clean_output, preferred_algorithms, strip_ansi};
 pub use error::Error;
 pub use platform::{Platform, ShellEscape};
 

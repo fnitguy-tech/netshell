@@ -2,13 +2,14 @@
 //! turn paging off, then send commands and read until the prompt
 //! comes back.
 
+use std::borrow::Cow;
 use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 
 use regex::Regex;
 use russh::client::{self, KeyboardInteractiveAuthResponse, Msg};
 use russh::keys::{HashAlg, PublicKeyOrCertificate};
-use russh::{Channel, ChannelMsg, Disconnect};
+use russh::{Channel, ChannelMsg, Disconnect, Preferred, cipher, kex, mac};
 
 use crate::{Error, Platform, Result};
 
@@ -125,6 +126,62 @@ impl client::Handler for Handler {
     }
 }
 
+/// The algorithms offered to a device, strongest first.
+///
+/// russh's own default is the modern-only set, which many switches,
+/// firewalls and routers in service cannot speak: an older Arista or
+/// Cisco image offers `ecdh-sha2-nistp256` and
+/// `diffie-hellman-group14-sha1` and nothing newer, and some only
+/// have `aes*-cbc` with `hmac-sha1`. netmiko (paramiko) offers all of
+/// these, so netshell does too. The device picks the first entry on
+/// our list that it supports, so a modern device still ends up on a
+/// modern algorithm; the legacy entries only matter when nothing
+/// better is available.
+pub fn preferred_algorithms() -> Preferred {
+    Preferred {
+        kex: Cow::Borrowed(&[
+            kex::MLKEM768X25519_SHA256,
+            kex::CURVE25519,
+            kex::CURVE25519_PRE_RFC_8731,
+            kex::ECDH_SHA2_NISTP521,
+            kex::ECDH_SHA2_NISTP384,
+            kex::ECDH_SHA2_NISTP256,
+            kex::DH_GEX_SHA256,
+            kex::DH_G18_SHA512,
+            kex::DH_G17_SHA512,
+            kex::DH_G16_SHA512,
+            kex::DH_G15_SHA512,
+            kex::DH_G14_SHA256,
+            kex::DH_G14_SHA1,
+            kex::DH_GEX_SHA1,
+            kex::DH_G1_SHA1,
+            kex::EXTENSION_SUPPORT_AS_CLIENT,
+            kex::EXTENSION_OPENSSH_STRICT_KEX_AS_CLIENT,
+        ]),
+        cipher: Cow::Borrowed(&[
+            cipher::CHACHA20_POLY1305,
+            cipher::AES_256_GCM,
+            cipher::AES_128_GCM,
+            cipher::AES_256_CTR,
+            cipher::AES_192_CTR,
+            cipher::AES_128_CTR,
+            cipher::AES_256_CBC,
+            cipher::AES_192_CBC,
+            cipher::AES_128_CBC,
+            cipher::TRIPLE_DES_CBC,
+        ]),
+        mac: Cow::Borrowed(&[
+            mac::HMAC_SHA512_ETM,
+            mac::HMAC_SHA256_ETM,
+            mac::HMAC_SHA512,
+            mac::HMAC_SHA256,
+            mac::HMAC_SHA1_ETM,
+            mac::HMAC_SHA1,
+        ]),
+        ..Preferred::DEFAULT
+    }
+}
+
 static ANSI: LazyLock<Regex> = LazyLock::new(|| {
     // CSI sequences (colours, cursor moves), charset selection, keypad
     // modes and OSC title strings. Enough for what network CLIs emit.
@@ -219,6 +276,7 @@ impl Device {
 
         let config = Arc::new(client::Config {
             keepalive_interval: Some(Duration::from_secs(30)),
+            preferred: preferred_algorithms(),
             ..Default::default()
         });
         let handler = Handler {

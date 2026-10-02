@@ -1,6 +1,6 @@
 [package]
 name = "netshell"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "netmiko-style SSH shell driver for network devices: Arista EOS, Cisco IOS/NX-OS/IOS-XR, Juniper Junos, Palo Alto PAN-OS"
 license = "MIT"
@@ -15,7 +15,7 @@ rpassword = "7.5"
 # ring instead of the default aws-lc-rs so the crate builds with nothing
 # but a C compiler on every platform (no cmake/nasm on Windows); rsa for
 # the RSA host keys most network devices still present.
-russh = { version = "0.63", default-features = false, features = ["ring", "flate2", "rsa"] }
+russh = { version = "0.63", default-features = false, features = ["ring", "flate2", "rsa", "des"] }
 thiserror = "2.0"
 tokio = { version = "1.53", features = ["rt", "rt-multi-thread", "net", "time", "io-util", "macros", "sync"] }
 

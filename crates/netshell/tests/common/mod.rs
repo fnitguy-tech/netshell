@@ -41,6 +41,9 @@ pub struct Spec {
     pub outputs: HashMap<String, String>,
     pub password: String,
     pub auth: AuthMode,
+    /// Only these algorithms are offered by the server, when set
+    /// (models an older device that has nothing modern).
+    pub legacy_only: bool,
 }
 
 impl Spec {
@@ -56,6 +59,7 @@ impl Spec {
             outputs: HashMap::new(),
             password: "secret".to_string(),
             auth: AuthMode::Password,
+            legacy_only: false,
         }
     }
 
@@ -86,10 +90,21 @@ pub async fn start(spec: Spec) -> FakeDevice {
     let key = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap();
     let fingerprint = key.public_key().fingerprint(HashAlg::Sha256).to_string();
 
+    let preferred = if spec.legacy_only {
+        russh::Preferred {
+            kex: std::borrow::Cow::Borrowed(&[russh::kex::ECDH_SHA2_NISTP256, russh::kex::DH_G14_SHA1]),
+            cipher: std::borrow::Cow::Borrowed(&[russh::cipher::AES_128_CBC, russh::cipher::TRIPLE_DES_CBC]),
+            mac: std::borrow::Cow::Borrowed(&[russh::mac::HMAC_SHA1]),
+            ..russh::Preferred::DEFAULT
+        }
+    } else {
+        russh::Preferred::DEFAULT
+    };
     let config = Arc::new(server::Config {
         auth_rejection_time: Duration::from_millis(10),
         auth_rejection_time_initial: Some(Duration::ZERO),
         keys: vec![key],
+        preferred,
         ..Default::default()
     });
 
