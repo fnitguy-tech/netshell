@@ -11,7 +11,7 @@
 //! play at all.
 //!
 //! File: `reports/<TICKET>/expectations.yml` by default, or
-//! `--expectations` on `prepost compare`. Schema:
+//! `-e` on `prepost report`. Schema:
 //!
 //! ```yaml
 //! ticket: NET-123                 # optional; must match when present

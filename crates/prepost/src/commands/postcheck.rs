@@ -1,11 +1,11 @@
-//! `prepost postcheck`: capture post-change state and diff it against
+//! `prepost post`: capture post-change state and diff it against
 //! the precheck.
 //!
 //! Run this AFTER the change is complete. Collects the same evidence as
 //! the precheck, zips it under `reports/<TICKET>/Postcheck/`, then
 //! immediately writes a plain-text comparison against the latest
 //! precheck so you know before leaving the window whether anything
-//! unexpected changed. Run `prepost compare` afterwards for the full
+//! unexpected changed. Run `prepost report` afterwards for the full
 //! HTML report.
 
 use std::fs;

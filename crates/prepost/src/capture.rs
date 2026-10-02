@@ -6,7 +6,7 @@
 //! Hostname: SITE-A-SW-1
 //! IP Address: 192.0.2.1
 //! Generated: 2026-04-14 08:48:02.123456
-//! Secrets: redacted              (only with --redact-secrets)
+//! Secrets: redacted              (only with -r / --redact)
 //! ================================================================================
 //!
 //!

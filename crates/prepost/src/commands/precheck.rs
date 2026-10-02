@@ -1,4 +1,4 @@
-//! `prepost precheck`: capture pre-change device state.
+//! `prepost pre`: capture pre-change device state.
 //!
 //! Run this BEFORE the maintenance window starts. Collects every
 //! command in the inventory from every device in parallel and zips the

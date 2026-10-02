@@ -89,7 +89,7 @@ src/main.rs           clap: pre, post, report, demo
 src/commands/         one module per subcommand
 src/inventory.rs      loads + validates inventory/devices.yml
 src/collect.rs        parallel SSH capture (netshell), zip packaging
-src/redact.rs         --redact-secrets rules
+src/redact.rs         -r / --redact rules
 src/capture.rs        the "### command ###" capture file format
 src/textcompare.rs    normalization rules + quick .txt diff report
 src/analysis/         parsers, findings, pair symmetry, impact scoring

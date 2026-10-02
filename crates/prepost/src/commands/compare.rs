@@ -1,8 +1,8 @@
-//! `prepost compare`: the interpreted HTML report from the latest
+//! `prepost report`: the interpreted HTML report from the latest
 //! precheck/postcheck pair. Port of `scripts/compare.py`.
 //!
 //! Needs no device access: it only reads files already captured by
-//! `prepost precheck` and `prepost postcheck`. The inventory is
+//! `prepost pre` and `prepost post`. The inventory is
 //! optional here and is read only for its `pairs:` list; pairs whose
 //! hostnames differ only by a trailing number (SW-1 / SW-2) are
 //! inferred from the captures without it. The expectations file

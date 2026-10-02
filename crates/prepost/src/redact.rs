@@ -1,7 +1,7 @@
 //! Strip passwords, hashes and other secrets from captured output.
 //! Port of the Python `redact.py`: same rules, same `<REDACTED>` marker.
 //!
-//! Off by default. `prepost precheck` / `postcheck` enable it with
+//! Off by default. `prepost pre` / `post` enable it with
 //! `--redact-secrets`, and the collector then runs every command's
 //! output through [`scrub`] before it is written to disk, so the
 //! capture files, the zips and every report built from them never

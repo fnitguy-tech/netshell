@@ -12,7 +12,7 @@
 //! |-----------------|-------------------------------------------------------------|
 //! | `inventory`     | loads + validates `inventory/devices.yml` (platforms, pairs) |
 //! | `collect`       | parallel SSH capture via netshell, zip packaging            |
-//! | `redact`        | `--redact-secrets`: strips passwords/hashes/keys            |
+//! | `redact`        | `-r`: strips passwords, hashes and keys from captures        |
 //! | `capture`       | the `### command ###` capture file format                   |
 //! | `textcompare`   | normalization rules + the quick .txt diff report            |
 //! | `difflib`       | port of Python's ndiff, so every diff orders lines the same |
