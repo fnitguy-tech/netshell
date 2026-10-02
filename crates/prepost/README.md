@@ -17,14 +17,16 @@ runs is a read-only `show`.
 ## One binary, four subcommands
 
 ```text
-prepost precheck  [--ticket T] [--username U] [--inventory F] [--redact-secrets]
-prepost postcheck [--ticket T] [--username U] [--inventory F] [--redact-secrets]
-prepost compare   [--ticket T] [--inventory F] [--expectations F]
-prepost demo      [--home DIR]
+prepost pre    NET-123 -r     capture before the change, secrets stripped
+prepost post   NET-123 -r     capture after the change, quick text diff
+prepost report NET-123        the interpreted HTML report
+prepost demo                  the whole workflow on bundled data, no devices
 ```
 
-Anything not given as a flag is prompted for. The SSH password is
-always prompted, never a flag. Output lands under `reports/<TICKET>/`
+Flags: `-u USER` (SSH username), `-i FILE` (inventory), `-r` (strip
+secrets), `-e FILE` (expectations, report only). Anything not given is
+prompted for. The SSH password is always prompted, never a flag. The
+long forms `precheck`, `postcheck` and `compare` work as aliases. Output lands under `reports/<TICKET>/`
 in the current directory, or under `$PREPOST_HOME` when that is set:
 
 ```text
@@ -48,13 +50,13 @@ Copy `fixtures/devices.example.yml` to `inventory/devices.yml`, fill in
 your management addresses, then:
 
 ```text
-prepost precheck --redact-secrets
+prepost pre NET-123 -r
    (do the change)
-prepost postcheck --redact-secrets
-prepost compare
+prepost post NET-123 -r
+prepost report NET-123
 ```
 
-`--redact-secrets` replaces every password hash, BGP/OSPF key, SNMP
+`-r` replaces every password hash, BGP/OSPF key, SNMP
 community and PAN-OS encrypted value with `<REDACTED>` before the
 capture is written, so the zip is safe to attach to a ticket. The rules
 are in `src/redact.rs`, one commented pattern per line.
@@ -83,7 +85,7 @@ rule for rule:
 ## Layout
 
 ```text
-src/main.rs           clap: precheck, postcheck, compare, demo
+src/main.rs           clap: pre, post, report, demo
 src/commands/         one module per subcommand
 src/inventory.rs      loads + validates inventory/devices.yml
 src/collect.rs        parallel SSH capture (netshell), zip packaging

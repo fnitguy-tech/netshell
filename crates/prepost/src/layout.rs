@@ -64,9 +64,10 @@ pub fn ticket_dirs_under(reports: &Path, ticket: &str) -> TicketDirs {
 }
 
 /// Root-relative form of a path for console output and report headers.
+/// Always forward slashes, so reports read the same on every platform.
 pub fn display_path(path: &Path) -> String {
     let shown = path.strip_prefix(root()).unwrap_or(path);
-    shown.display().to_string()
+    shown.display().to_string().replace('\\', "/")
 }
 
 /// One timestamp format everywhere, sortable as a plain string.

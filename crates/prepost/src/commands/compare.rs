@@ -22,17 +22,17 @@ use super::resolve_ticket;
 
 #[derive(Clone, Debug, clap::Args)]
 pub struct Args {
-    /// Change/Jira ticket number (prompted if omitted)
-    #[arg(long)]
+    /// Change/Jira ticket number, e.g. NET-123 (prompted if omitted)
+    #[arg(value_name = "TICKET")]
     pub ticket: Option<String>,
 
     /// Inventory YAML, read only for its optional pairs: list
     /// (default: inventory/devices.yml when present)
-    #[arg(long)]
+    #[arg(short, long, value_name = "FILE")]
     pub inventory: Option<PathBuf>,
 
     /// Expectations YAML (default: reports/<TICKET>/expectations.yml when present)
-    #[arg(long)]
+    #[arg(short, long, value_name = "FILE")]
     pub expectations: Option<PathBuf>,
 }
 

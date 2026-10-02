@@ -1,29 +1,29 @@
-//! The four subcommands. Each has a clap `Args` struct and a `run`.
+//! The four subcommands: pre, post, report, demo. Each has a clap
+//! `Args` struct and a `run`.
 
 pub mod compare;
 pub mod demo;
 pub mod postcheck;
 pub mod precheck;
 
-/// Shared capture flags for precheck and postcheck.
+/// Shared arguments for `pre` and `post`.
 #[derive(Clone, Debug, clap::Args)]
 pub struct CaptureArgs {
-    /// Change/Jira ticket number (prompted if omitted)
-    #[arg(long)]
+    /// Change/Jira ticket number, e.g. NET-123 (prompted if omitted)
+    #[arg(value_name = "TICKET")]
     pub ticket: Option<String>,
 
-    /// Path to inventory YAML (default: inventory/devices.yml)
-    #[arg(long)]
-    pub inventory: Option<std::path::PathBuf>,
-
     /// SSH username (prompted if omitted)
-    #[arg(long)]
+    #[arg(short, long, value_name = "USER")]
     pub username: Option<String>,
 
-    /// Replace passwords, hashes, SNMP communities, TACACS/RADIUS/BGP/OSPF
-    /// keys and PAN-OS encrypted values with <REDACTED> before writing
-    #[arg(long)]
-    pub redact_secrets: bool,
+    /// Inventory YAML (default: inventory/devices.yml)
+    #[arg(short, long, value_name = "FILE")]
+    pub inventory: Option<std::path::PathBuf>,
+
+    /// Strip passwords, hashes, SNMP communities and keys from the capture
+    #[arg(short, long, alias = "redact-secrets")]
+    pub redact: bool,
 }
 
 /// The ticket from the flag or a prompt, normalized.

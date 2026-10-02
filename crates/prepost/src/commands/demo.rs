@@ -50,7 +50,7 @@ pub const DEVICES: [(&str, &str, &str); 4] = [
 #[derive(Clone, Debug, clap::Args)]
 pub struct Args {
     /// Where to write reports/ (default: $PREPOST_HOME or the current directory)
-    #[arg(long)]
+    #[arg(short = 'H', long, value_name = "DIR")]
     pub home: Option<std::path::PathBuf>,
 }
 

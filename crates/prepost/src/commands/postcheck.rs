@@ -41,7 +41,7 @@ pub fn run(args: Args) -> anyhow::Result<()> {
         "postcheck",
         &dirs.postcheck,
         &run_timestamp,
-        args.capture.redact_secrets,
+        args.capture.redact,
         &SshConnector,
     )?;
 
