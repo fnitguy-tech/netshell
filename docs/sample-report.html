@@ -1,0 +1,2307 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NET-2043 Maintenance Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+    --panel: rgba(15, 23, 42, 0.92);
+    --text: #e5edf8;
+    --muted: #94a3b8;
+    --line: rgba(148, 163, 184, 0.22);
+    --green: #22c55e;
+    --blue: #38bdf8;
+    --yellow: #f59e0b;
+    --orange: #fb923c;
+    --red: #ef4444;
+    --purple: #a78bfa;
+}
+
+* { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 32%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.14), transparent 34%),
+        linear-gradient(135deg, #020617 0%, #07111f 48%, #111827 100%);
+    color: var(--text);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.header {
+    padding: 34px 44px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(2, 6, 23, 0.72);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #020617;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 34px;
+    letter-spacing: -0.04em;
+}
+
+.subtitle, .muted { color: var(--muted); }
+
+.header-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.meta-pill {
+    border: 1px solid var(--line);
+    background: rgba(15, 23, 42, 0.65);
+    border-radius: 999px;
+    padding: 9px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.container { padding: 26px 44px 44px 44px; }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.card, .chart-card, .device, .outcome-card, .attention-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+}
+
+.card {
+    padding: 18px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.card.clickable:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.65);
+}
+
+.label {
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.value {
+    font-size: 30px;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+.health-stable { color: var(--green); }
+.health-changed { color: var(--blue); }
+.health-attention { color: var(--yellow); }
+.health-action-required { color: var(--red); }
+
+.outcome-card {
+    padding: 22px;
+    margin-bottom: 28px;
+}
+
+.outcome-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 2fr;
+    gap: 18px;
+}
+
+.outcome-pill {
+    border: 1px solid var(--line);
+    background: rgba(2, 6, 23, 0.38);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.outcome-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #dbeafe;
+}
+
+.attention-card {
+    padding: 18px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--yellow);
+}
+
+.attention-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.attention-link {
+    display: block;
+    border: 1px solid var(--line);
+    background: rgba(245, 158, 11, 0.10);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.attention-link:hover {
+    border-color: rgba(245, 158, 11, 0.65);
+}
+
+.charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr;
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.chart-card { padding: 20px; }
+
+.chart-card h3 { margin: 0 0 6px 0; }
+
+.chart-note {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.chart-wrap {
+    position: relative;
+    height: 300px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 30px 0 14px 0;
+}
+
+.section-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 99px;
+    background: var(--blue);
+    box-shadow: 0 0 18px var(--blue);
+}
+
+.device {
+    margin-bottom: 20px;
+    overflow: hidden;
+    scroll-margin-top: 24px;
+}
+
+.device-header {
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.14), rgba(167, 139, 250, 0.08));
+    border-bottom: 1px solid var(--line);
+}
+
+.device-name {
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.device-summary {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.section {
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--line);
+}
+
+.section:last-child { border-bottom: none; }
+
+.finding {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: rgba(15, 23, 42, 0.62);
+}
+
+.finding.stable {
+    border-left: 4px solid var(--green);
+    background: rgba(34, 197, 94, 0.14);
+}
+
+.finding.changed {
+    border-left: 4px solid var(--blue);
+    background: rgba(56, 189, 248, 0.12);
+}
+
+.finding.attention {
+    border-left: 4px solid var(--yellow);
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.finding.action-required {
+    border-left: 4px solid var(--red);
+    background: rgba(239, 68, 68, 0.14);
+}
+
+.finding-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.badge-stable {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.42);
+}
+
+.badge-changed {
+    background: rgba(56, 189, 248, 0.18);
+    color: #bae6fd;
+    border: 1px solid rgba(56, 189, 248, 0.42);
+}
+
+.badge-attention {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.42);
+}
+
+.badge-action {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.42);
+}
+
+.finding-heading, .peer-name { font-weight: 800; }
+
+.peer-ip, .peer-as {
+    color: var(--muted);
+    font-family: Consolas, monospace;
+}
+
+.finding-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.mini-label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+}
+
+.state-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: Consolas, monospace;
+    font-size: 14px;
+}
+
+.arrow { color: var(--blue); }
+
+.explanation {
+    color: #dbeafe;
+    line-height: 1.45;
+}
+
+.evidence {
+    margin-top: 8px;
+    color: #bfdbfe;
+    font-size: 13px;
+}
+
+.diff-box {
+    background: rgba(2, 6, 23, 0.72);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    overflow-x: auto;
+}
+
+.added {
+    color: #86efac;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+.removed {
+    color: #fca5a5;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+details {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.54);
+    overflow: hidden;
+}
+
+summary {
+    cursor: pointer;
+    padding: 12px 14px;
+    color: #bae6fd;
+    font-weight: 800;
+}
+
+details .diff-box {
+    border: none;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+}
+
+.empty {
+    color: var(--muted);
+    font-style: italic;
+}
+
+.footer {
+    color: var(--muted);
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+    .cards, .charts, .outcome-grid, .attention-list {
+        grid-template-columns: 1fr;
+    }
+
+    .header-meta, .finding-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="brand">
+        <div class="logo">M</div>
+        <div>
+            <h1>Maintenance Report</h1>
+            <div class="subtitle">Automated pre/post comparison, interpreted findings, visual summary, and raw evidence package</div>
+        </div>
+    </div>
+
+    <div class="header-meta">
+        <div class="meta-pill">Jira Ticket: NET-2043</div>
+        <div class="meta-pill">Precheck: reports/NET-2043/Precheck/precheck_2026-04-14_08-48</div>
+        <div class="meta-pill">Postcheck: reports/NET-2043/Postcheck/postcheck_2026-04-14_10-42</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="cards">
+        <a class="card clickable" href="#device-findings"><div class="label">Network Health</div><div class="value health-attention">Attention</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Devices Checked</div><div class="value">10</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Devices With Findings</div><div class="value">4</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Changed</div><div class="value">34</div></a>
+        <a class="card clickable" href="#attention-items"><div class="label">Attention</div><div class="value health-attention">4</div></a>
+    </div>
+
+    <div class="outcome-card">
+        <h2>Maintenance Outcome Summary</h2>
+        <div class="outcome-grid">
+            <div class="outcome-pill">
+                <strong>Assessment</strong>
+                <p>Operational changes were detected that should be reviewed. Click the Attention card to jump to items requiring review.</p>
+            </div>
+            <div class="outcome-pill">
+                <strong>Detected Categories</strong>
+                <ul class="outcome-list">
+
+<li>22 configuration finding/evidence item(s) detected.</li>
+<li>10 protocol finding/evidence item(s) detected.</li>
+<li>29 routing finding/evidence item(s) detected.</li>
+<li>2 interface finding/evidence item(s) detected.</li>
+<li>4 layer 2 finding/evidence item(s) detected.</li>
+<li>2 evidence only finding/evidence item(s) detected.</li>
+
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="attention-items" class="attention-card">
+        <h2>Items Needing Attention</h2>
+
+<div class="attention-list">
+
+        <a class="attention-link" href="#device-site-b-sw-2">
+            <strong>SITE-B-SW-2.txt</strong><br>
+            <span class="muted">Attention: 1 | Action Required: 0 | Impact Score: 28</span>
+        </a>
+        
+
+        <a class="attention-link" href="#device-site-a-sw-1">
+            <strong>SITE-A-SW-1.txt</strong><br>
+            <span class="muted">Attention: 1 | Action Required: 0 | Impact Score: 31</span>
+        </a>
+        
+
+        <a class="attention-link" href="#device-site-a-sw-2">
+            <strong>SITE-A-SW-2.txt</strong><br>
+            <span class="muted">Attention: 1 | Action Required: 0 | Impact Score: 24</span>
+        </a>
+        
+
+        <a class="attention-link" href="#device-site-b-sw-1">
+            <strong>SITE-B-SW-1.txt</strong><br>
+            <span class="muted">Attention: 1 | Action Required: 0 | Impact Score: 15</span>
+        </a>
+        
+</div>
+
+    </div>
+
+    <div class="charts">
+        <div class="chart-card">
+            <h3>Operational Health</h3>
+            <div class="chart-note">Stable, changed, attention, and action-required classifications.</div>
+            <div class="chart-wrap"><canvas id="healthChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Findings by Category</h3>
+            <div class="chart-note">Generic categories that remain useful across maintenance types.</div>
+            <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Device Impact</h3>
+            <div class="chart-note">Ranks devices by interpreted operational impact, not raw diff volume.</div>
+            <div class="chart-wrap"><canvas id="deviceImpactChart"></canvas></div>
+        </div>
+    </div>
+
+    <div id="device-findings" class="section-title">
+        <div class="section-dot"></div>
+        <h2>Device Findings</h2>
+    </div>
+
+
+    <div id="device-site-b-sw-2" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-B-SW-2.txt</div>
+            <div class="device-summary">Findings: 13 | Impact Score: 28 | Evidence Sections: 4</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding stable">
+        <div class="finding-title">
+            <span class="badge badge-stable">Stable</span>
+            <span class="finding-heading">BGP Peer Activated</span>
+            <span class="peer-name">EXTNET-LAB</span>
+            <span class="peer-ip">10.118.9.3</span>
+            <span class="peer-as">AS65000</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Idle(Admin)</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>0</span><span class="arrow">→</span><span>3</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>0</span><span class="arrow">→</span><span>3</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">The peer transitioned from administratively idle to established.</div>
+        <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-A-SW-1</span>
+            <span class="peer-ip">198.18.85.240</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>248</span><span class="arrow">→</span><span>53</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>248</span><span class="arrow">→</span><span>53</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -195. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-A-SW-2</span>
+            <span class="peer-ip">198.18.85.241</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>208</span><span class="arrow">→</span><span>12</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>208</span><span class="arrow">→</span><span>12</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -196. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-B-SW-1</span>
+            <span class="peer-ip">198.18.86.240</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>224</span><span class="arrow">→</span><span>21</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>224</span><span class="arrow">→</span><span>21</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -203. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+    <div class="finding attention">
+        <div class="finding-title">
+            <span class="badge badge-attention">Attention</span>
+            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="peer-name">ISP-A ASSET-0016</span>
+            <span class="peer-ip">198.18.85.3</span>
+            <span class="peer-as">AS64550</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Idle(Admin)</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>226</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>226</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">TO FWs - Po201</span>
+            <span class="peer-ip">10.5.9.2</span>
+            <span class="peer-as">AS4200000002</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<div class="removed">-    neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    no neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    neighbor 10.118.9.3 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.4 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.5 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.6 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 198.18.85.3 shutdown</div>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show ip bgp - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  * &gt;      0.0.0.0/0              198.18.85.3           -       -          -       0       ?</div>
+<div class="added">+  * &gt;      0.0.0.0/0              198.19.126.10         -       -          -       0       ?</div>
+<div class="removed">-  * &gt;      100.64.194.0/23          198.18.85.3           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.85.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.86.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.85.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      100.64.196.0/23          198.18.85.3           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.85.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.86.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.85.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      10.9.148.104/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.9.149.104/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="removed">-  *        10.9.148.104/32        10.5.9.2              0       -          100     0       4200000002 ?</div>
+<div class="added">+  *        10.9.149.104/32        10.5.9.2              0       -          100     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.9.149.105/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  *        10.9.149.105/32        10.5.9.2              0       -          100     0       4200000002 ?</div>
+<div class="removed">-  * &gt;      10.33.18.68/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.69/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="removed">-  *        10.33.18.68/32         10.5.9.2              0       -          100     0       4200000002 ?</div>
+<div class="added">+  *        10.33.18.69/32         10.5.9.2              0       -          100     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.70/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="added">+  *        10.33.18.70/32         10.5.9.2              0       -          100     0       4200000002 ?</div>
+<div class="removed">-  * &gt;      10.78.76.238/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.239/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.240/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show ip bgp summary</summary>
+                <div class="diff-box">
+
+<div class="removed">- TO FWs - Po201 10.5.9.2 AS4200000002 Estab 10 10</div>
+<div class="added">+ TO FWs - Po201 10.5.9.2 AS4200000002 Estab 13 13</div>
+<div class="removed">- EXTNET-LAB 10.118.9.3 AS65000 Idle(Admin)</div>
+<div class="added">+ EXTNET-LAB 10.118.9.3 AS65000 Estab 3 3</div>
+<div class="removed">- ISP-A ASSET-0016 198.18.85.3 AS64550 Estab 226 226</div>
+<div class="added">+ ISP-A ASSET-0016 198.18.85.3 AS64550 Idle(Admin)</div>
+<div class="removed">- SITE-A-SW-1 198.18.85.240 AS4200000001 Estab 248 248</div>
+<div class="added">+ SITE-A-SW-1 198.18.85.240 AS4200000001 Estab 53 53</div>
+<div class="removed">- SITE-A-SW-2 198.18.85.241 AS4200000001 Estab 208 208</div>
+<div class="added">+ SITE-A-SW-2 198.18.85.241 AS4200000001 Estab 12 12</div>
+<div class="removed">- SITE-B-SW-1 198.18.86.240 AS4200000001 Estab 224 224</div>
+<div class="added">+ SITE-B-SW-1 198.18.86.240 AS4200000001 Estab 21 21</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  S        0.0.0.0/0 [1/0]</div>
+<div class="added">+  S        0.0.0.0/0 [1/254]</div>
+<div class="removed">-            via 198.18.85.3, Port-Channel1</div>
+<div class="added">+            via 198.19.126.10, Ethernet53/1</div>
+<div class="removed">-  B E      100.64.194.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.3, Port-Channel1</div>
+<div class="removed">-  B E      100.64.196.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.3, Port-Channel1</div>
+<div class="removed">-  B I      10.9.148.104/32 [200/0]</div>
+<div class="added">+  B I      10.9.149.104/32 [200/0]</div>
+<div class="added">+            via 10.204.7.0, Vlan200</div>
+<div class="added">+            via 10.9.8.1, Ethernet23.507</div>
+<div class="added">+  B I      10.9.149.105/32 [200/0]</div>
+<div class="removed">-  B I      10.33.18.68/32 [200/0]</div>
+<div class="added">+  B I      10.33.18.69/32 [200/0]</div>
+<div class="added">+            via 10.204.7.0, Vlan200</div>
+<div class="added">+  B I      10.33.18.70/32 [200/0]</div>
+<div class="removed">-  B I      10.78.76.238/32 [200/0]</div>
+<div class="added">+  B I      10.78.76.239/32 [200/0]</div>
+<div class="added">+            via 10.204.7.0, Vlan200</div>
+<div class="added">+            via 10.9.8.1, Ethernet23.507</div>
+<div class="added">+  B I      10.78.76.240/32 [200/0]</div>
+<div class="removed">-  B E      100.65.30.0/24 [200/0]</div>
+<div class="removed">-            via 198.18.85.3, Port-Channel1</div>
+<div class="removed">-  B E      100.65.31.0/24 [200/0]</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show running-config</summary>
+                <div class="diff-box">
+
+<div class="removed">- ip route 0.0.0.0/0 198.18.85.3 resolution ribs system-connected</div>
+<div class="added">+ ip route 0.0.0.0/0 198.19.126.10 name UPLINK-SEC metric 254</div>
+<div class="added">+ ip route 0.0.0.0/0 198.18.85.3 name UPLINK metric 255</div>
+<div class="removed">-    neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    no neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    neighbor 10.118.9.3 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.4 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.5 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.6 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 198.18.85.3 shutdown</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-a-sw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-A-SW-1.txt</div>
+            <div class="device-summary">Findings: 12 | Impact Score: 31 | Evidence Sections: 6</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">Firewall</span>
+            <span class="peer-ip">10.8.7.0</span>
+            <span class="peer-as">AS4200000003</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-A-SW-2</span>
+            <span class="peer-ip">198.18.85.241</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>208</span><span class="arrow">→</span><span>12</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>208</span><span class="arrow">→</span><span>12</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -196. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-B-SW-1</span>
+            <span class="peer-ip">198.18.86.240</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>224</span><span class="arrow">→</span><span>21</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>224</span><span class="arrow">→</span><span>21</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -203. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-B-SW-2</span>
+            <span class="peer-ip">198.18.86.241</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>213</span><span class="arrow">→</span><span>11</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>213</span><span class="arrow">→</span><span>11</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -202. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary + BGP route-map/community config</div>
+    </div>
+    
+
+    <div class="finding attention">
+        <div class="finding-title">
+            <span class="badge badge-attention">Attention</span>
+            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="peer-name">ISP-A ASSET-0019</span>
+            <span class="peer-ip">198.18.85.5</span>
+            <span class="peer-as">AS64550</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Idle(Admin)</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>219</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>219</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<div class="added">+    neighbor EXTNET send-community</div>
+<div class="removed">-    neighbor 10.118.9.3 route-map EXTNET-LAB-OUT out</div>
+<div class="added">+    neighbor 10.118.9.3 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.4 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.5 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.6 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 198.18.85.5 shutdown</div>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show interfaces status</summary>
+                <div class="diff-box">
+
+<div class="removed">- Po201      BGP peer to FW-2                                      connected    trunk    full   200G   N/A                                   </div>
+<div class="added">+ Po201      BGP peer to FW-2                                      connected    trunk    full   100G   N/A                                   </div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip bgp - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  * &gt;      0.0.0.0/0              198.18.85.5           -       -          -       0       ?</div>
+<div class="added">+  * &gt;      0.0.0.0/0              198.19.126.40         -       -          -       0       ?</div>
+<div class="removed">-  * &gt;      100.64.194.0/23          198.18.85.5           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.85.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.86.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.86.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      100.64.196.0/23          198.18.85.5           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.85.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.86.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.86.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      10.9.148.104/32        10.8.7.0              0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.9.149.104/32        10.8.7.0              0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.9.149.105/32        10.8.7.0              0       -          300     0       4200000003 ?</div>
+<div class="removed">-  * &gt;      10.33.18.68/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.69/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.70/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="removed">-  * &gt;      10.78.76.238/32        10.8.7.0              0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.239/32        10.8.7.0              0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.240/32        10.8.7.0              0       -          300     0       4200000003 ?</div>
+<div class="removed">-  * &gt;      100.65.0.0/18           198.18.86.240         0       -          100     0       64550 64530 64530 i</div>
+<div class="removed">-  *        100.65.0.0/18           198.18.86.241         0       -          100     0       64550 64530 64530 i</div>
+<div class="removed">-  * &gt;      100.65.30.0/24          198.18.85.5           0       -          100     0       64550 64530 64530 i</div>
+<div class="removed">-  *        100.65.30.0/24          198.18.85.241         0       -          100     0       64550 64530 64530 i</div>
+<div class="removed">-  *        100.65.30.0/24          198.18.86.240         0       -          100     0       64550 64530 64530 i</div>
+<div class="removed">-  *        100.65.30.0/24          198.18.86.241         0       -          100     0       64550 64530 64530 i</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show ip bgp summary</summary>
+                <div class="diff-box">
+
+<div class="removed">- Firewall 10.8.7.0 AS4200000003 Estab 10 10</div>
+<div class="added">+ Firewall 10.8.7.0 AS4200000003 Estab 13 13</div>
+<div class="removed">- ISP-A ASSET-0019 198.18.85.5 AS64550 Estab 219 219</div>
+<div class="added">+ ISP-A ASSET-0019 198.18.85.5 AS64550 Idle(Admin)</div>
+<div class="removed">- SITE-A-SW-2 198.18.85.241 AS4200000001 Estab 208 208</div>
+<div class="added">+ SITE-A-SW-2 198.18.85.241 AS4200000001 Estab 12 12</div>
+<div class="removed">- SITE-B-SW-1 198.18.86.240 AS4200000001 Estab 224 224</div>
+<div class="removed">- SITE-B-SW-2 198.18.86.241 AS4200000001 Estab 213 213</div>
+<div class="added">+ SITE-B-SW-1 198.18.86.240 AS4200000001 Estab 21 21</div>
+<div class="added">+ SITE-B-SW-2 198.18.86.241 AS4200000001 Estab 11 11</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  S        0.0.0.0/0 [1/250]</div>
+<div class="added">+  S        0.0.0.0/0 [1/249]</div>
+<div class="removed">-            via 198.18.85.5, Port-Channel1</div>
+<div class="added">+            via 198.19.126.40, Ethernet51/1</div>
+<div class="removed">-  B E      100.64.194.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.5, Port-Channel1</div>
+<div class="removed">-  B E      100.64.196.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.5, Port-Channel1</div>
+<div class="removed">-  B E      10.9.148.104/32 [200/0]</div>
+<div class="added">+  B E      10.9.149.104/32 [200/0]</div>
+<div class="added">+            via 10.8.7.0, Vlan101</div>
+<div class="added">+  B E      10.9.149.105/32 [200/0]</div>
+<div class="removed">-  B I      10.33.18.68/32 [200/0]</div>
+<div class="added">+  B I      10.33.18.69/32 [200/0]</div>
+<div class="added">+            via 10.9.5.2, Ethernet23.508</div>
+<div class="added">+  B I      10.33.18.70/32 [200/0]</div>
+<div class="removed">-  B E      10.78.76.238/32 [200/0]</div>
+<div class="added">+  B E      10.78.76.239/32 [200/0]</div>
+<div class="added">+            via 10.8.7.0, Vlan101</div>
+<div class="added">+  B E      10.78.76.240/32 [200/0]</div>
+<div class="removed">-  B E      100.65.30.0/24 [200/0]</div>
+<div class="removed">-            via 198.18.85.5, Port-Channel1</div>
+<div class="removed">-  B E      100.65.31.0/24 [200/0]</div>
+<div class="removed">-            via 198.18.85.5, Port-Channel1</div>
+<div class="removed">-  B E      100.65.46.0/24 [200/0]</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show mac address-table</summary>
+                <div class="diff-box">
+
+<div class="removed">-   99    0200.5e1a.7b01    DYNAMIC     Po200      1       10 days,</div>
+<div class="removed">-   99    0200.5e1a.7b02    DYNAMIC     Po200      1       102 days,</div>
+<div class="added">+   99    0200.5e1a.7b02    DYNAMIC     Po200      1       103 days,</div>
+<div class="removed">-   99    0200.5e2b.4c04    DYNAMIC     Et6        1       40 days,</div>
+<div class="added">+   99    0200.5e2b.4c04    DYNAMIC     Et6        1       41 days,</div>
+<div class="added">+   99    0200.5e3c.9d07    DYNAMIC     Po200      1</div>
+<div class="added">+  902    0200.5e2b.4c03    DYNAMIC     Et5        1</div>
+<div class="removed">-  903    0200.5e2b.4c05    DYNAMIC     Et5        1</div>
+<div class="removed">-  903    0200.5e2b.4c06    DYNAMIC     Et5        1</div>
+<div class="removed">- Total Mac Addresses for this criterion: 44</div>
+<div class="added">+ Total Mac Addresses for this criterion: 43</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show running-config</summary>
+                <div class="diff-box">
+
+<div class="added">+ ip route 0.0.0.0/0 198.19.126.40 name UPLINK-SEC metric 249</div>
+<div class="removed">- ip route 0.0.0.0/0 198.18.85.5 metric 250</div>
+<div class="added">+ ip route 0.0.0.0/0 198.18.85.5 name UPLINK metric 250</div>
+<div class="added">+    neighbor EXTNET send-community</div>
+<div class="removed">-    neighbor 10.118.9.3 route-map EXTNET-LAB-OUT out</div>
+<div class="added">+    neighbor 10.118.9.3 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.4 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.5 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 10.118.9.6 route-map EXTNET-OUT out</div>
+<div class="added">+    neighbor 198.18.85.5 shutdown</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-a-sw-2" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-A-SW-2.txt</div>
+            <div class="device-summary">Findings: 9 | Impact Score: 24 | Evidence Sections: 7</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding stable">
+        <div class="finding-title">
+            <span class="badge badge-stable">Stable</span>
+            <span class="finding-heading">BGP Peer Activated</span>
+            <span class="peer-name">EXTNET-LAB</span>
+            <span class="peer-ip">10.118.9.3</span>
+            <span class="peer-as">AS65000</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Idle(Admin)</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>0</span><span class="arrow">→</span><span>3</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>0</span><span class="arrow">→</span><span>3</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">The peer transitioned from administratively idle to established.</div>
+        <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-A-SW-1</span>
+            <span class="peer-ip">198.18.85.240</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>248</span><span class="arrow">→</span><span>53</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>248</span><span class="arrow">→</span><span>53</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -195. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-B-SW-1</span>
+            <span class="peer-ip">198.18.86.240</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>224</span><span class="arrow">→</span><span>21</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>224</span><span class="arrow">→</span><span>21</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -203. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-B-SW-2</span>
+            <span class="peer-ip">198.18.86.241</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>213</span><span class="arrow">→</span><span>11</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>213</span><span class="arrow">→</span><span>11</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -202. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+    <div class="finding attention">
+        <div class="finding-title">
+            <span class="badge badge-attention">Attention</span>
+            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="peer-name">ISP-A ASSET-0020-</span>
+            <span class="peer-ip">198.18.85.7</span>
+            <span class="peer-as">AS64550</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Idle(Admin)</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>219</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>219</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">To FW</span>
+            <span class="peer-ip">10.8.7.2</span>
+            <span class="peer-as">AS4200000003</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<div class="removed">-    neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    no neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    neighbor 198.18.85.7 shutdown</div>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show interfaces status</summary>
+                <div class="diff-box">
+
+<div class="removed">- Et54/1     to FW-2 J35 Passive                               connected    in Po201 full   100G   100GBASE-AR4                          </div>
+<div class="added">+ Et54/1     to FW-2 J35 Passive                               notconnect   in Po201 full   100G   100GBASE-AR4                          </div>
+<div class="removed">- Po201      to FW                                               connected    trunk    full   200G   N/A                                   </div>
+<div class="added">+ Po201      to FW                                               notconnect   trunk    full   100G   N/A                                   </div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip bgp - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  * &gt;      0.0.0.0/0              198.18.85.7           -       -          -       0       ?</div>
+<div class="added">+  * &gt;      0.0.0.0/0              198.19.126.42         -       -          -       0       ?</div>
+<div class="removed">-  * &gt;      100.64.194.0/23          198.18.85.7           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.85.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.86.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.86.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      100.64.196.0/23          198.18.85.7           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.85.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.86.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.86.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      10.9.148.104/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.9.149.104/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="removed">-  *        10.9.148.104/32        10.8.7.2              0       -          200     0       4200000003 ?</div>
+<div class="added">+  *        10.9.149.104/32        10.8.7.2              0       -          200     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.9.149.105/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  *        10.9.149.105/32        10.8.7.2              0       -          200     0       4200000003 ?</div>
+<div class="removed">-  * &gt;      10.33.18.68/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.69/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.70/32         198.18.86.240         0       -          200     0       4200000002 ?</div>
+<div class="removed">-  * &gt;      10.78.76.238/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.239/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="removed">-  *        10.78.76.238/32        10.8.7.2              0       -          200     0       4200000003 ?</div>
+<div class="added">+  *        10.78.76.239/32        10.8.7.2              0       -          200     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.240/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  *        10.78.76.240/32        10.8.7.2              0       -          200     0       4200000003 ?</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show ip bgp summary</summary>
+                <div class="diff-box">
+
+<div class="removed">- To FW 10.8.7.2 AS4200000003 Estab 10 10</div>
+<div class="added">+ To FW 10.8.7.2 AS4200000003 Estab 13 13</div>
+<div class="removed">- EXTNET-LAB 10.118.9.3 AS65000 Idle(Admin)</div>
+<div class="added">+ EXTNET-LAB 10.118.9.3 AS65000 Estab 3 3</div>
+<div class="removed">- ISP-A ASSET-0020- 198.18.85.7 AS64550 Estab 219 219</div>
+<div class="added">+ ISP-A ASSET-0020- 198.18.85.7 AS64550 Idle(Admin)</div>
+<div class="removed">- SITE-A-SW-1 198.18.85.240 AS4200000001 Estab 248 248</div>
+<div class="added">+ SITE-A-SW-1 198.18.85.240 AS4200000001 Estab 53 53</div>
+<div class="removed">- SITE-B-SW-1 198.18.86.240 AS4200000001 Estab 224 224</div>
+<div class="removed">- SITE-B-SW-2 198.18.86.241 AS4200000001 Estab 213 213</div>
+<div class="added">+ SITE-B-SW-1 198.18.86.240 AS4200000001 Estab 21 21</div>
+<div class="added">+ SITE-B-SW-2 198.18.86.241 AS4200000001 Estab 11 11</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  S        0.0.0.0/0 [1/0]</div>
+<div class="added">+  S        0.0.0.0/0 [1/249]</div>
+<div class="removed">-            via 198.18.85.7, Port-Channel1</div>
+<div class="added">+            via 198.19.126.42, Ethernet51/1</div>
+<div class="removed">-  B E      100.64.194.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.7, Port-Channel1</div>
+<div class="removed">-  B E      100.64.196.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.7, Port-Channel1</div>
+<div class="removed">-  B I      10.9.148.104/32 [200/0]</div>
+<div class="added">+  B I      10.9.149.104/32 [200/0]</div>
+<div class="added">+            via 10.204.0.0, Vlan200</div>
+<div class="added">+  B I      10.9.149.105/32 [200/0]</div>
+<div class="removed">-  B I      10.33.18.68/32 [200/0]</div>
+<div class="added">+  B I      10.33.18.69/32 [200/0]</div>
+<div class="added">+            via 10.204.0.0, Vlan200</div>
+<div class="added">+            via 10.9.8.2, Ethernet23.507</div>
+<div class="added">+  B I      10.33.18.70/32 [200/0]</div>
+<div class="removed">-  B I      10.78.76.238/32 [200/0]</div>
+<div class="added">+  B I      10.78.76.239/32 [200/0]</div>
+<div class="added">+            via 10.204.0.0, Vlan200</div>
+<div class="added">+  B I      10.78.76.240/32 [200/0]</div>
+<div class="removed">-  B E      100.65.30.0/24 [200/0]</div>
+<div class="removed">-            via 198.18.85.7, Port-Channel1</div>
+<div class="removed">-  B E      100.65.31.0/24 [200/0]</div>
+<div class="removed">-            via 198.18.85.7, Port-Channel1</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show lldp neighbors</summary>
+                <div class="diff-box">
+
+<div class="removed">- Et54/1          site-a-fw-2                                                              ethernet1/35        120</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show mac address-table</summary>
+                <div class="diff-box">
+
+<div class="removed">-   99    0200.5e1a.7b01    DYNAMIC     Et5        1       10 days,</div>
+<div class="removed">-   99    0200.5e1a.7b02    DYNAMIC     Et5        1       102 days,</div>
+<div class="added">+   99    0200.5e1a.7b02    DYNAMIC     Et5        1       103 days,</div>
+<div class="removed">-   99    0200.5e2b.4c04    DYNAMIC     Po200      1       40 days,</div>
+<div class="added">+   99    0200.5e2b.4c04    DYNAMIC     Po200      1       41 days,</div>
+<div class="added">+   99    0200.5e3c.9d07    DYNAMIC     Et5        1</div>
+<div class="added">+  902    0200.5e2b.4c03    DYNAMIC     Po200      1</div>
+<div class="removed">-  903    0200.5e2b.4c05    DYNAMIC     Po200      1</div>
+<div class="removed">-  903    0200.5e2b.4c06    DYNAMIC     Po200      1</div>
+<div class="removed">- Total Mac Addresses for this criterion: 48</div>
+<div class="added">+ Total Mac Addresses for this criterion: 47</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show running-config</summary>
+                <div class="diff-box">
+
+<div class="added">+ ip route 0.0.0.0/0 198.19.126.42 name UPLINK-SEC metric 249</div>
+<div class="removed">- ip route 0.0.0.0/0 198.18.85.7 name UPLINK</div>
+<div class="added">+ ip route 0.0.0.0/0 198.18.85.7 name UPLINK metric 250</div>
+<div class="removed">-    neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    no neighbor 10.118.9.3 shutdown</div>
+<div class="added">+    neighbor 198.18.85.7 shutdown</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-b-sw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-B-SW-1.txt</div>
+            <div class="device-summary">Findings: 6 | Impact Score: 15 | Evidence Sections: 4</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-A-SW-1</span>
+            <span class="peer-ip">198.18.85.240</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>248</span><span class="arrow">→</span><span>53</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>248</span><span class="arrow">→</span><span>53</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -195. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-A-SW-2</span>
+            <span class="peer-ip">198.18.85.241</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>208</span><span class="arrow">→</span><span>12</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>208</span><span class="arrow">→</span><span>12</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -196. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">SITE-B-SW-2</span>
+            <span class="peer-ip">198.18.86.241</span>
+            <span class="peer-as">AS4200000001</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>213</span><span class="arrow">→</span><span>11</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>213</span><span class="arrow">→</span><span>11</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by -202. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+    <div class="finding attention">
+        <div class="finding-title">
+            <span class="badge badge-attention">Attention</span>
+            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="peer-name">ISP-A ASSET-0015</span>
+            <span class="peer-ip">198.18.85.1</span>
+            <span class="peer-as">AS64550</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Idle(Admin)</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>226</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>226</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
+    </div>
+    
+
+    <div class="finding changed">
+        <div class="finding-title">
+            <span class="badge badge-changed">Changed</span>
+            <span class="finding-heading">BGP Prefix Count Changed</span>
+            <span class="peer-name">To FW</span>
+            <span class="peer-ip">10.5.9.0</span>
+            <span class="peer-as">AS4200000002</span>
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>10</span><span class="arrow">→</span><span>13</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by 3. This may be expected when routing policy, communities, failover, or advertised routes change.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<div class="added">+    neighbor 198.18.85.1 shutdown</div>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show ip bgp - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  * &gt;      0.0.0.0/0              198.18.85.1           -       -          -       0       ?</div>
+<div class="added">+  * &gt;      0.0.0.0/0              198.19.126.8          -       -          -       0       ?</div>
+<div class="removed">-  * &gt;      100.64.194.0/23          198.18.85.1           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.85.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.86.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.194.0/23          198.18.85.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      100.64.196.0/23          198.18.85.1           0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.85.240         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.86.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  *        100.64.196.0/23          198.18.85.241         0       -          100     0       64550 64530 64560 i</div>
+<div class="removed">-  * &gt;      10.9.148.104/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.9.149.104/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="removed">-  *        10.9.148.104/32        10.5.9.0              0       -          200     0       4200000002 ?</div>
+<div class="added">+  *        10.9.149.104/32        10.5.9.0              0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.9.149.105/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  *        10.9.149.105/32        10.5.9.0              0       -          200     0       4200000002 ?</div>
+<div class="removed">-  * &gt;      10.33.18.68/32         10.5.9.0              0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.69/32         10.5.9.0              0       -          200     0       4200000002 ?</div>
+<div class="added">+  * &gt;      10.33.18.70/32         10.5.9.0              0       -          200     0       4200000002 ?</div>
+<div class="removed">-  * &gt;      10.78.76.238/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.239/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="added">+  * &gt;      10.78.76.240/32        198.18.85.240         0       -          300     0       4200000003 ?</div>
+<div class="removed">-  * &gt;      100.65.0.0/18           198.18.85.1           0       -          100     0       64550 64530 64530 i</div>
+<div class="removed">-  *        100.65.0.0/18           198.18.86.241         0       -          100     0       64550 64530 64530 i</div>
+<div class="removed">-  * &gt;      100.65.30.0/24          198.18.85.1           0       -          100     0       64550 64530 64530 i</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show ip bgp summary</summary>
+                <div class="diff-box">
+
+<div class="removed">- To FW 10.5.9.0 AS4200000002 Estab 10 10</div>
+<div class="added">+ To FW 10.5.9.0 AS4200000002 Estab 13 13</div>
+<div class="removed">- ISP-A ASSET-0015 198.18.85.1 AS64550 Estab 226 226</div>
+<div class="added">+ ISP-A ASSET-0015 198.18.85.1 AS64550 Idle(Admin)</div>
+<div class="removed">- SITE-A-SW-1 198.18.85.240 AS4200000001 Estab 248 248</div>
+<div class="added">+ SITE-A-SW-1 198.18.85.240 AS4200000001 Estab 53 53</div>
+<div class="removed">- SITE-A-SW-2 198.18.85.241 AS4200000001 Estab 208 208</div>
+<div class="added">+ SITE-A-SW-2 198.18.85.241 AS4200000001 Estab 12 12</div>
+<div class="removed">- SITE-B-SW-2 198.18.86.241 AS4200000001 Estab 213 213</div>
+<div class="added">+ SITE-B-SW-2 198.18.86.241 AS4200000001 Estab 11 11</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  S        0.0.0.0/0 [1/255]</div>
+<div class="added">+  S        0.0.0.0/0 [1/254]</div>
+<div class="removed">-            via 198.18.85.1, Port-Channel1</div>
+<div class="added">+            via 198.19.126.8, Ethernet51/1</div>
+<div class="removed">-  B E      100.64.194.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.1, Port-Channel1</div>
+<div class="removed">-  B E      100.64.196.0/23 [200/0]</div>
+<div class="removed">-            via 198.18.85.1, Port-Channel1</div>
+<div class="removed">-  B I      10.9.148.104/32 [200/0]</div>
+<div class="added">+  B I      10.9.149.104/32 [200/0]</div>
+<div class="added">+            via 10.9.5.1, Ethernet23.508</div>
+<div class="added">+  B I      10.9.149.105/32 [200/0]</div>
+<div class="removed">-  B E      10.33.18.68/32 [200/0]</div>
+<div class="added">+  B E      10.33.18.69/32 [200/0]</div>
+<div class="added">+            via 10.5.9.0, Vlan101</div>
+<div class="added">+  B E      10.33.18.70/32 [200/0]</div>
+<div class="removed">-  B I      10.78.76.238/32 [200/0]</div>
+<div class="added">+  B I      10.78.76.239/32 [200/0]</div>
+<div class="added">+            via 10.9.5.1, Ethernet23.508</div>
+<div class="added">+  B I      10.78.76.240/32 [200/0]</div>
+<div class="removed">-  B E      100.65.30.0/24 [200/0]</div>
+<div class="removed">-            via 198.18.85.1, Port-Channel1</div>
+<div class="removed">-  B E      100.65.31.0/24 [200/0]</div>
+<div class="removed">-            via 198.18.85.1, Port-Channel1</div>
+<div class="removed">-  B E      100.65.46.0/24 [200/0]</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show running-config</summary>
+                <div class="diff-box">
+
+<div class="removed">- ip route 0.0.0.0/0 198.18.85.1 name UPLINK-1 metric 255</div>
+<div class="added">+ ip route 0.0.0.0/0 198.19.126.8 name UPLINK-SEC metric 254</div>
+<div class="added">+ ip route 0.0.0.0/0 198.18.85.1 name UPLINK metric 255</div>
+<div class="added">+    neighbor 198.18.85.1 shutdown</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-core-mgmt-sw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">CORE-MGMT-SW-1.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 1</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor or prefix changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show mac address-table</summary>
+                <div class="diff-box">
+
+<div class="added">+   90    0200.5e3c.9d08    DYNAMIC     Po2        1</div>
+<div class="removed">- Total Mac Addresses for this criterion: 41</div>
+<div class="added">+ Total Mac Addresses for this criterion: 42</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-lab-fw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">lab-fw-1.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 1</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor or prefix changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show routing route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">- 10.9.0.2/31                                 10.9.2.25                               23       O1       927910 vlan.630                      </div>
+<div class="added">+ 10.9.0.2/31                                 10.9.2.25                               23       O1       934791 vlan.630                      </div>
+<div class="removed">- 10.9.2.0/31                                 10.9.2.25                               22     A Oi       927910 vlan.630                      </div>
+<div class="added">+ 10.9.2.0/31                                 10.9.2.25                               22     A Oi       934791 vlan.630                      </div>
+<div class="removed">- 10.9.2.2/31                                 10.9.2.25                               22     A Oi       927910 vlan.630                      </div>
+<div class="added">+ 10.9.2.2/31                                 10.9.2.25                               22     A Oi       934791 vlan.630                      </div>
+<div class="removed">- 10.9.2.4/31                                 10.9.2.25                               22     A Oi       927910 vlan.630                      </div>
+<div class="added">+ 10.9.2.4/31                                 10.9.2.25                               22     A Oi       934791 vlan.630                      </div>
+<div class="removed">- 10.9.2.6/31                                 10.9.2.25                               22     A Oi       927910 vlan.630                      </div>
+<div class="added">+ 10.9.2.6/31                                 10.9.2.25                               22     A Oi       934791 vlan.630                      </div>
+<div class="removed">- 10.9.2.8/29                                 10.9.2.25                               22     A Oi       927910 vlan.630                      </div>
+<div class="added">+ 10.9.2.8/29                                 10.9.2.25                               22     A Oi       934791 vlan.630                      </div>
+<div class="removed">- 10.9.2.16/29                                10.9.2.25                               22     A Oi       927910 vlan.630                      </div>
+<div class="added">+ 10.9.2.16/29                                10.9.2.25                               22     A Oi       934791 vlan.630                      </div>
+<div class="removed">- 10.9.2.24/29                                0.0.0.0                                 2        Oi       927984 vlan.630                      </div>
+<div class="added">+ 10.9.2.24/29                                0.0.0.0                                 2        Oi       934865 vlan.630                      </div>
+<div class="removed">- 10.9.2.128/31                               10.9.2.25                               12     A Oi       927946 vlan.630                      </div>
+<div class="added">+ 10.9.2.128/31                               10.9.2.25                               12     A Oi       934827 vlan.630                      </div>
+<div class="removed">- 10.9.2.130/31                               10.9.2.25                               12     A Oi       927946 vlan.630                      </div>
+<div class="added">+ 10.9.2.130/31                               10.9.2.25                               12     A Oi       934827 vlan.630                      </div>
+<div class="removed">- 10.9.2.132/31                               10.9.2.25                               12     A Oi       927946 vlan.630                      </div>
+<div class="added">+ 10.9.2.132/31                               10.9.2.25                               12     A Oi       934827 vlan.630                      </div>
+<div class="removed">- 10.9.2.134/31                               10.9.2.25                               12     A Oi       927946 vlan.630                      </div>
+<div class="added">+ 10.9.2.134/31                               10.9.2.25                               12     A Oi       934827 vlan.630                      </div>
+<div class="removed">- 10.5.0.0/27                                 10.9.2.25                               22     A Oi       927910 vlan.630                      </div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-a-fw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">site-a-fw-1.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 2</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor or prefix changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show routing protocol bgp peer</summary>
+                <div class="diff-box">
+
+<div class="removed">-   Peer status:                   Established, for 4546946 seconds</div>
+<div class="added">+   Peer status:                   Established, for 4553827 seconds</div>
+<div class="removed">-   Outgoing Prefix:               10</div>
+<div class="added">+   Outgoing Prefix:               13</div>
+<div class="removed">-   Advertised Prefix:             10</div>
+<div class="added">+   Advertised Prefix:             13</div>
+<div class="removed">-   Peer status:                   Established, for 4550445 seconds</div>
+<div class="added">+   Peer status:                   Established, for 4557327 seconds</div>
+<div class="removed">-   Outgoing Prefix:               10</div>
+<div class="added">+   Outgoing Prefix:               13</div>
+<div class="removed">-   Advertised Prefix:             10</div>
+<div class="added">+   Advertised Prefix:             13</div>
+<div class="removed">-   Peer status:                   Established, for 2865 seconds</div>
+<div class="added">+   Peer status:                   Connect, for 3115 seconds</div>
+<div class="removed">-   Remote Address:                10.9.148.104:179</div>
+<div class="added">+   Remote Address:                10.9.148.104</div>
+<div class="removed">-   Local Address:                 10.78.0.251:41659</div>
+<div class="added">+   Local Address:                 10.78.0.251</div>
+<div class="removed">-   Capability:                    Multiprotocol Extensions(1)  value: IPv4 Unicast</div>
+<div class="removed">-   Capability:                    Route Refresh(yes)</div>
+<div class="removed">-   Capability:                    4-Byte AS Number(65)  value: 4200000020</div>
+<div class="added">+   ==========</div>
+<div class="added">+   Peer:                          HQ2-GW-FW2 (id 26)</div>
+<div class="added">+   virtual router:                CORE1</div>
+<div class="added">+   Peer router id:                10.9.148.105</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show routing route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">- 10.9.148.104/32                             10.78.76.238                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.9.149.104/32                             10.78.76.240                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.9.149.105/32                             10.78.76.239                            10     A S              tunnel.505                    </div>
+<div class="removed">- 10.78.76.238/32                             10.78.76.238                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.78.76.239/32                             10.78.76.239                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.78.76.240/32                             10.78.76.240                            10     A S              tunnel.505                    </div>
+<div class="removed">- 10.54.73.224/32                             10.8.7.1                                       A?B        92501                    4200000001 </div>
+<div class="added">+ 10.54.73.224/32                             10.8.7.1                                       A?B        99382                    4200000001 </div>
+<div class="removed">- 10.54.73.225/32                             10.8.7.1                                       A?B        92501                    4200000001 </div>
+<div class="added">+ 10.54.73.225/32                             10.8.7.1                                       A?B        99382                    4200000001 </div>
+<div class="removed">- 10.118.4.251/32                             10.8.7.1                                       A?B        3365370                    4200000001 </div>
+<div class="added">+ 10.118.4.251/32                             10.8.7.1                                       A?B        3372251                    4200000001 </div>
+<div class="removed">- 10.118.4.252/32                             10.8.7.1                                       A?B        251978                    4200000001 </div>
+<div class="added">+ 10.118.4.252/32                             10.8.7.1                                       A?B        258859                    4200000001 </div>
+<div class="removed">- 10.118.4.253/32                             10.8.7.1                                       A?B        251978                    4200000001 </div>
+<div class="added">+ 10.118.4.253/32                             10.8.7.1                                       A?B        258859                    4200000001 </div>
+<div class="removed">- 10.118.4.254/32                             10.8.7.1                                       A?B        251978                    4200000001 </div>
+<div class="added">+ 10.118.4.254/32                             10.8.7.1                                       A?B        258859                    4200000001 </div>
+<div class="removed">- 100.77.21.0/24                             10.8.7.1                                       A?B        251978                    4200000001 </div>
+<div class="added">+ 100.77.21.0/24                             10.8.7.1                                       A?B        258859                    4200000001 </div>
+<div class="removed">- 100.77.21.11/32                            10.8.7.1                                       A?B        8974                     4200000001 </div>
+<div class="added">+ 100.77.21.11/32                            10.8.7.1                                       A?B        15856                    4200000001 </div>
+<div class="removed">- 100.77.21.12/32                            10.8.7.1                                       A?B        9045                     4200000001 </div>
+<div class="removed">- 100.77.21.15/32                            10.8.7.1                                       A?B        5809                     4200000001 </div>
+<div class="removed">- 100.77.21.30/32                            10.8.7.1                                       A?B        7138                     4200000001 </div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-a-fw-2" class="device">
+        <div class="device-header">
+            <div class="device-name">site-a-fw-2.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 1</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor or prefix changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show routing route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">- 10.9.148.104/32                             10.78.76.238                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.9.149.104/32                             10.78.76.240                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.9.149.105/32                             10.78.76.239                            10     A S              tunnel.505                    </div>
+<div class="removed">- 10.78.76.238/32                             10.78.76.238                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.78.76.239/32                             10.78.76.239                            10     A S              tunnel.505                    </div>
+<div class="added">+ 10.78.76.240/32                             10.78.76.240                            10     A S              tunnel.505                    </div>
+<div class="removed">- total routes shown: 29</div>
+<div class="added">+ total routes shown: 31</div>
+<div class="removed">- 10.9.148.204/32                             10.78.24.225                            10     A S              tunnel.507                    </div>
+<div class="added">+ 10.9.149.204/32                             10.78.24.227                            10     A S              tunnel.507                    </div>
+<div class="added">+ 10.9.149.205/32                             10.78.24.226                            10     A S              tunnel.507                    </div>
+<div class="removed">- 10.78.24.225/32                             10.78.24.225                            10     A S              tunnel.507                    </div>
+<div class="added">+ 10.78.24.226/32                             10.78.24.226                            10     A S              tunnel.507                    </div>
+<div class="added">+ 10.78.24.227/32                             10.78.24.227                            10     A S              tunnel.507                    </div>
+<div class="removed">- total routes shown: 24</div>
+<div class="added">+ total routes shown: 26</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-b-fw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">site-b-fw-1.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 1</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor or prefix changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show routing route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">- 10.9.148.104/32                             10.33.18.68                             10     A S              tunnel.505                    </div>
+<div class="removed">- 10.33.18.68/32                              10.33.18.68                             10     A S              tunnel.505                    </div>
+<div class="removed">- total routes shown: 24</div>
+<div class="added">+ total routes shown: 22</div>
+<div class="removed">- 10.9.148.204/32                             10.33.20.46                             10     A S              tunnel.507                    </div>
+<div class="removed">- 10.33.20.46/32                              10.33.20.46                             10     A S              tunnel.507                    </div>
+<div class="removed">- total routes shown: 20</div>
+<div class="added">+ total routes shown: 18</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-b-fw-2" class="device">
+        <div class="device-header">
+            <div class="device-name">site-b-fw-2.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 2</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor or prefix changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show routing protocol bgp peer</summary>
+                <div class="diff-box">
+
+<div class="removed">-   Peer status:                   Established, for 278530 seconds</div>
+<div class="added">+   Peer status:                   Established, for 285411 seconds</div>
+<div class="removed">-   Outgoing Prefix:               10</div>
+<div class="added">+   Outgoing Prefix:               13</div>
+<div class="removed">-   Advertised Prefix:             10</div>
+<div class="added">+   Advertised Prefix:             13</div>
+<div class="removed">-   Peer status:                   Established, for 278530 seconds</div>
+<div class="added">+   Peer status:                   Established, for 285411 seconds</div>
+<div class="removed">-   Outgoing Prefix:               10</div>
+<div class="added">+   Outgoing Prefix:               13</div>
+<div class="removed">-   Advertised Prefix:             10</div>
+<div class="added">+   Advertised Prefix:             13</div>
+<div class="removed">-   Peer status:                   Established, for 2861 seconds</div>
+<div class="added">+   Peer status:                   Connect, for 3111 seconds</div>
+<div class="removed">-   Remote Address:                10.9.148.104:179</div>
+<div class="added">+   Remote Address:                10.9.148.104</div>
+<div class="removed">-   Local Address:                 10.33.0.251:34505</div>
+<div class="added">+   Local Address:                 10.33.0.251</div>
+<div class="removed">-   Capability:                    Multiprotocol Extensions(1)  value: IPv4 Unicast</div>
+<div class="removed">-   Capability:                    Route Refresh(yes)</div>
+<div class="removed">-   Capability:                    4-Byte AS Number(65)  value: 4200000020</div>
+<div class="added">+   ==========</div>
+<div class="added">+   Peer:                          HQ2-GW-FW2 (id 8)</div>
+<div class="added">+   virtual router:                CORE1</div>
+<div class="added">+   Peer router id:                10.9.148.105</div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+            <details>
+                <summary>show routing route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">- 10.9.148.104/32                             10.33.18.68                             10     A S              tunnel.505                    </div>
+<div class="added">+ 10.9.149.104/32                             10.33.18.70                             10     A S              tunnel.505                    </div>
+<div class="added">+ 10.9.149.105/32                             10.33.18.69                             10     A S              tunnel.505                    </div>
+<div class="removed">- 10.33.18.68/32                              10.33.18.68                             10     A S              tunnel.505                    </div>
+<div class="added">+ 10.33.18.69/32                              10.33.18.69                             10     A S              tunnel.505                    </div>
+<div class="added">+ 10.33.18.70/32                              10.33.18.70                             10     A S              tunnel.505                    </div>
+<div class="removed">- 10.54.73.224/32                             10.5.9.1                                       A?B        278410                    4200000001 </div>
+<div class="added">+ 10.54.73.224/32                             10.5.9.1                                       A?B        285291                    4200000001 </div>
+<div class="removed">- 10.54.73.225/32                             10.5.9.1                                       A?B        278410                    4200000001 </div>
+<div class="added">+ 10.54.73.225/32                             10.5.9.1                                       A?B        285291                    4200000001 </div>
+<div class="removed">- 10.118.4.251/32                             10.5.9.1                                       A?B        254817                    4200000001 </div>
+<div class="added">+ 10.118.4.251/32                             10.5.9.1                                       A?B        261698                    4200000001 </div>
+<div class="removed">- 10.118.4.252/32                             10.5.9.1                                       A?B        278410                    4200000001 </div>
+<div class="added">+ 10.118.4.252/32                             10.5.9.1                                       A?B        285291                    4200000001 </div>
+<div class="removed">- 10.118.4.253/32                             10.5.9.1                                       A?B        278410                    4200000001 </div>
+<div class="added">+ 10.118.4.253/32                             10.5.9.1                                       A?B        285291                    4200000001 </div>
+<div class="removed">- 10.118.4.254/32                             10.5.9.1                                       A?B        278410                    4200000001 </div>
+<div class="added">+ 10.118.4.254/32                             10.5.9.1                                       A?B        285291                    4200000001 </div>
+<div class="removed">- 100.77.21.0/24                             10.5.9.1                                       A?B        278410                    4200000001 </div>
+<div class="added">+ 100.77.21.0/24                             10.5.9.1                                       A?B        285291                    4200000001 </div>
+<div class="removed">- 100.77.21.11/32                            10.5.9.1                                       A?B        8971                     4200000001 </div>
+<div class="added">+ 100.77.21.11/32                            10.5.9.1                                       A?B        15852                    4200000001 </div>
+<div class="removed">- 100.77.21.12/32                            10.5.9.1                                       A?B        9042                     4200000001 </div>
+<div class="added">+ 100.77.21.12/32                            10.5.9.1                                       A?B        15923                    4200000001 </div>
+<div class="removed">- 100.77.21.15/32                            10.5.9.1                                       A?B        5806                     4200000001 </div>
+<div class="empty">&hellip; evidence truncated for this public sample &hellip;</div>
+</div>
+</details>
+
+
+        </div>
+    </div>
+    
+
+</div>
+
+<div class="footer">
+    Generated 2026-04-14 13:38:52 | Maintenance Report
+</div>
+
+<script>
+const healthLabels = ["Stable", "Changed", "Attention", "Action Required"];
+const healthValues = [2, 34, 4, 0];
+
+const categoryLabels = ["Configuration", "Protocol", "Routing", "Interface", "Layer 2", "Firewall", "System", "Evidence only"];
+const categoryValues = [22, 10, 29, 2, 4, 0, 0, 2];
+
+const deviceLabels = ["SITE-B-SW-2", "SITE-A-SW-1", "SITE-A-SW-2", "SITE-B-SW-1", "CORE-MGMT-SW-1", "lab-fw-1", "site-a-fw-1", "site-a-fw-2", "site-b-fw-1", "site-b-fw-2"];
+const deviceImpact = [28, 31, 24, 15, 0, 0, 0, 0, 0, 0];
+
+Chart.defaults.color = "#cbd5e1";
+Chart.defaults.borderColor = "rgba(148, 163, 184, 0.18)";
+Chart.defaults.font.family = "Segoe UI, Arial, sans-serif";
+
+new Chart(document.getElementById("healthChart"), {
+    type: "doughnut",
+    data: {
+        labels: healthLabels,
+        datasets: [{
+            data: healthValues,
+            backgroundColor: [
+                "rgba(34, 197, 94, 0.78)",
+                "rgba(56, 189, 248, 0.78)",
+                "rgba(245, 158, 11, 0.78)",
+                "rgba(239, 68, 68, 0.78)"
+            ],
+            borderColor: "rgba(15, 23, 42, 0.92)",
+            borderWidth: 3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: "bottom" }
+        },
+        cutout: "68%"
+    }
+});
+
+new Chart(document.getElementById("categoryChart"), {
+    type: "bar",
+    data: {
+        labels: categoryLabels,
+        datasets: [{
+            label: "Findings / evidence items",
+            data: categoryValues,
+            backgroundColor: "rgba(56, 189, 248, 0.72)",
+            borderRadius: 8
+        }]
+    },
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+new Chart(document.getElementById("deviceImpactChart"), {
+    type: "bar",
+    data: {
+        labels: deviceLabels,
+        datasets: [{
+            label: "Impact score",
+            data: deviceImpact,
+            backgroundColor: "rgba(167, 139, 250, 0.72)",
+            borderRadius: 8
+        }]
+    },
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        },
+        plugins: {
+            legend: { position: "bottom" }
+        }
+    }
+});
+</script>
+
+</body>
+</html>
+
+

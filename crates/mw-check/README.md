@@ -14,91 +14,20 @@ interchangeably on the same `reports/` tree. SSH goes through the
 [`netshell`](../netshell/) crate instead of netmiko; every command it
 runs is a read-only `show`.
 
-## One binary, four subcommands
+The full guide, with screenshots, install options and the inventory
+and expectations formats, is the
+[repository README](../../README.md). In short:
 
 ```text
-mw before    NET-123 -r     capture before the change, secrets stripped
-mw after   NET-123 -r     capture after the change, quick text diff
-mw report NET-123        the interpreted HTML report
-mw demo                  the whole workflow on bundled data, no devices
+mw before NET-123 -r      capture before the change, secrets stripped
+mw after  NET-123 -r      capture after the change, quick text diff
+mw report NET-123         the interpreted HTML report
+mw demo                   the whole workflow on bundled data, no devices
 ```
 
-Flags: `-u USER` (SSH username), `-i FILE` (inventory), `-r` (strip
-secrets), `-e FILE` (expectations, report only). Anything not given is
-prompted for. The SSH password is always prompted, never a flag. The
-long forms `precheck`, `postcheck` and `compare` work as aliases. Output lands under `reports/<TICKET>/`
-in the current directory, or under `$MW_HOME` when that is set:
-
-```text
-reports/<TICKET>/
-  Precheck/precheck_<timestamp>/<hostname>.txt   (+ .zip)
-  Postcheck/postcheck_<timestamp>/<hostname>.txt (+ .zip)
-  Compare/compare_<timestamp>.txt / .html
-  expectations.yml   (optional, written by hand: expected BGP deltas)
-```
-
-## Try it in 60 seconds, no devices
-
-`mw demo` runs the whole workflow on the bundled fictional
-four-device uplink migration: SSH is replaced by a stub that replays
-the captures in `fixtures/NET-DEMO/`, everything else is the real code
-path, and the reports land in `reports/NET-DEMO/`.
-
-## Run it against your network
-
-Copy `fixtures/devices.example.yml` to `inventory/devices.yml`, fill in
-your management addresses, then:
-
-```text
-mw before NET-123 -r
-   (do the change)
-mw after NET-123 -r
-mw report NET-123
-```
-
-`-r` replaces every password hash, BGP/OSPF key, SNMP
-community and PAN-OS encrypted value with `<REDACTED>` before the
-capture is written, so the zip is safe to attach to a ticket. The rules
-are in `src/redact.rs`, one commented pattern per line.
-
-## What the report interprets
-
-Everything beyond a raw diff that the Python tool understands, ported
-rule for rule:
-
-- **BGP peers**: state changes, prefix-count deltas correlated with
-  the BGP-relevant config lines that changed, a session whose uptime
-  went backwards (a reset the summary table would otherwise hide),
-  peers that appeared or vanished.
-- **Prefix lists**: a withdrawn entry or a same-sequence overwrite is
-  `Attention`; a resequenced entry is `Changed`; an added one `Stable`.
-- **Pair symmetry**: same-named prefix-lists, route-maps and PAN-OS HA
-  state compared across each redundant pair (inferred from hostnames
-  that differ only by a trailing number, or listed under `pairs:` in
-  the inventory). A divergence is reported on both members.
-- **Interfaces** that gained an address during the window and are
-  still down.
-- **Expectations**: `reports/<TICKET>/expectations.yml` states the
-  intended prefix deltas per peer; matching deltas are rated `Stable`
-  "as planned", the rest `Attention`.
-
-## Layout
-
-```text
-src/main.rs           clap: before, after, report, demo
-src/commands/         one module per subcommand
-src/inventory.rs      loads + validates inventory/devices.yml
-src/collect.rs        parallel SSH capture (netshell), zip packaging
-src/redact.rs         -r / --redact rules
-src/capture.rs        the "### command ###" capture file format
-src/textcompare.rs    normalization rules + quick .txt diff report
-src/analysis/         parsers, findings, pair symmetry, impact scoring
-src/expectations.rs   expected BGP prefix deltas for one change
-src/report.rs         the self-contained HTML report
-src/layout.rs         reports/<TICKET>/ directory conventions
-src/vpn.rs            IPsec/IKE/LSVPN churn rule shared by both views
-fixtures/NET-DEMO/    the demo captures and the Python tool's reports for them
-```
+Flags: `-u USER`, `-i FILE` (inventory), `-r` (strip secrets), `-e FILE`
+(expectations, report only), `-H DIR` (demo output). Anything not given
+is prompted for; the SSH password is always prompted.
 
 ## License
 
