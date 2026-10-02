@@ -1,0 +1,1039 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NET-DEMO Maintenance Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+    --panel: rgba(15, 23, 42, 0.92);
+    --text: #e5edf8;
+    --muted: #94a3b8;
+    --line: rgba(148, 163, 184, 0.22);
+    --green: #22c55e;
+    --blue: #38bdf8;
+    --yellow: #f59e0b;
+    --orange: #fb923c;
+    --red: #ef4444;
+    --purple: #a78bfa;
+}
+
+* { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 32%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.14), transparent 34%),
+        linear-gradient(135deg, #020617 0%, #07111f 48%, #111827 100%);
+    color: var(--text);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.header {
+    padding: 34px 44px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(2, 6, 23, 0.72);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #020617;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 34px;
+    letter-spacing: -0.04em;
+}
+
+.subtitle, .muted { color: var(--muted); }
+
+.header-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.meta-pill {
+    border: 1px solid var(--line);
+    background: rgba(15, 23, 42, 0.65);
+    border-radius: 999px;
+    padding: 9px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.container { padding: 26px 44px 44px 44px; }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.card, .chart-card, .device, .outcome-card, .attention-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+}
+
+.card {
+    padding: 18px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.card.clickable:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.65);
+}
+
+.label {
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.value {
+    font-size: 30px;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+.health-stable { color: var(--green); }
+.health-changed { color: var(--blue); }
+.health-attention { color: var(--yellow); }
+.health-action-required { color: var(--red); }
+
+.outcome-card {
+    padding: 22px;
+    margin-bottom: 28px;
+}
+
+.outcome-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 2fr;
+    gap: 18px;
+}
+
+.outcome-pill {
+    border: 1px solid var(--line);
+    background: rgba(2, 6, 23, 0.38);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.outcome-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #dbeafe;
+}
+
+.attention-card {
+    padding: 18px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--yellow);
+}
+
+.pair-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+    padding: 18px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--purple);
+}
+
+.attention-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.attention-link {
+    display: block;
+    border: 1px solid var(--line);
+    background: rgba(245, 158, 11, 0.10);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.attention-link:hover {
+    border-color: rgba(245, 158, 11, 0.65);
+}
+
+.charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr;
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.chart-card { padding: 20px; }
+
+.chart-card h3 { margin: 0 0 6px 0; }
+
+.chart-note {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.chart-wrap {
+    position: relative;
+    height: 300px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 30px 0 14px 0;
+}
+
+.section-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 99px;
+    background: var(--blue);
+    box-shadow: 0 0 18px var(--blue);
+}
+
+.device {
+    margin-bottom: 20px;
+    overflow: hidden;
+    scroll-margin-top: 24px;
+}
+
+.device-header {
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.14), rgba(167, 139, 250, 0.08));
+    border-bottom: 1px solid var(--line);
+}
+
+.device-name {
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.device-summary {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.section {
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--line);
+}
+
+.section:last-child { border-bottom: none; }
+
+.finding {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: rgba(15, 23, 42, 0.62);
+}
+
+.finding.stable {
+    border-left: 4px solid var(--green);
+    background: rgba(34, 197, 94, 0.14);
+}
+
+.finding.changed {
+    border-left: 4px solid var(--blue);
+    background: rgba(56, 189, 248, 0.12);
+}
+
+.finding.attention {
+    border-left: 4px solid var(--yellow);
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.finding.action-required {
+    border-left: 4px solid var(--red);
+    background: rgba(239, 68, 68, 0.14);
+}
+
+.finding-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.badge-stable {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.42);
+}
+
+.badge-changed {
+    background: rgba(56, 189, 248, 0.18);
+    color: #bae6fd;
+    border: 1px solid rgba(56, 189, 248, 0.42);
+}
+
+.badge-attention {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.42);
+}
+
+.badge-action {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.42);
+}
+
+.finding-heading, .peer-name { font-weight: 800; }
+
+.peer-ip, .peer-as {
+    color: var(--muted);
+    font-family: Consolas, monospace;
+}
+
+.finding-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.finding-detail {
+    margin-top: 10px;
+}
+
+.mini-label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+}
+
+.state-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: Consolas, monospace;
+    font-size: 14px;
+}
+
+.arrow { color: var(--blue); }
+
+.explanation {
+    color: #dbeafe;
+    line-height: 1.45;
+}
+
+.evidence {
+    margin-top: 8px;
+    color: #bfdbfe;
+    font-size: 13px;
+}
+
+.diff-box {
+    background: rgba(2, 6, 23, 0.72);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    overflow-x: auto;
+}
+
+.added {
+    color: #86efac;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+.removed {
+    color: #fca5a5;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+.context {
+    color: var(--muted);
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+details {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.54);
+    overflow: hidden;
+}
+
+summary {
+    cursor: pointer;
+    padding: 12px 14px;
+    color: #bae6fd;
+    font-weight: 800;
+}
+
+details .diff-box {
+    border: none;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+}
+
+.empty {
+    color: var(--muted);
+    font-style: italic;
+}
+
+.footer {
+    color: var(--muted);
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+    .cards, .charts, .outcome-grid, .pair-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+    padding: 18px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--purple);
+}
+
+.attention-list {
+        grid-template-columns: 1fr;
+    }
+
+    .header-meta, .finding-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="brand">
+        <div class="logo">M</div>
+        <div>
+            <h1>Maintenance Report</h1>
+            <div class="subtitle">Automated pre/post comparison, interpreted findings, visual summary, and raw evidence package</div>
+        </div>
+    </div>
+
+    <div class="header-meta">
+        <div class="meta-pill">Ticket: NET-DEMO</div>
+        <div class="meta-pill">Precheck: reports/NET-DEMO/Precheck/precheck_2026-04-14_08-48</div>
+        <div class="meta-pill">Postcheck: reports/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42</div>
+        <div class="meta-pill">Expectations: docs/demo/NET-DEMO/expectations.yml</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="cards">
+        <a class="card clickable" href="#device-findings"><div class="label">Network Health</div><div class="value health-attention">Attention</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Devices Checked</div><div class="value">4</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Devices With Findings</div><div class="value">2</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Changed</div><div class="value">6</div></a>
+        <a class="card clickable" href="#attention-items"><div class="label">Attention</div><div class="value health-attention">1</div></a>
+    </div>
+
+    <div class="outcome-card">
+        <h2>Maintenance Outcome Summary</h2>
+        <div class="outcome-grid">
+            <div class="outcome-pill">
+                <strong>Assessment</strong>
+                <p>Operational changes were detected that should be reviewed. Click the Attention card to jump to items requiring review.</p>
+            </div>
+            <div class="outcome-pill">
+                <strong>Detected Categories</strong>
+                <ul class="outcome-list">
+
+<li>9 configuration finding/evidence item(s) detected.</li>
+<li>4 protocol finding/evidence item(s) detected.</li>
+<li>3 routing finding/evidence item(s) detected.</li>
+<li>1 interface finding/evidence item(s) detected.</li>
+<li>2 layer 2 finding/evidence item(s) detected.</li>
+<li>1 evidence only finding/evidence item(s) detected.</li>
+<li>BGP prefix deltas against the expectations file: 1 as planned, 0 different from plan, 0 unexplained, 0 expected change(s) that did not happen.</li>
+
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="attention-items" class="attention-card">
+        <h2>Items Needing Attention</h2>
+
+<div class="attention-list">
+
+        <a class="attention-link" href="#device-site-a-sw-1">
+            <strong>SITE-A-SW-1.txt</strong><br>
+            <span class="muted">Attention: 1 | Action Required: 0 | Impact Score: 22</span>
+        </a>
+        
+</div>
+
+    </div>
+
+    <div id="pair-symmetry" class="pair-card">
+        <h2>Pair Symmetry</h2>
+
+<p class="muted">1 pair(s) compared from the postcheck captures: SITE-A-SW-1 / SITE-A-SW-2. Same-named prefix-lists and route-maps, and PAN-OS HA state, are checked entry for entry.</p>
+<p class="empty">Both members of every pair agree.</p>
+
+    </div>
+
+    <div class="charts">
+        <div class="chart-card">
+            <h3>Operational Health</h3>
+            <div class="chart-note">Stable, changed, attention, and action-required classifications.</div>
+            <div class="chart-wrap"><canvas id="healthChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Findings by Category</h3>
+            <div class="chart-note">Generic categories that remain useful across maintenance types.</div>
+            <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Device Impact</h3>
+            <div class="chart-note">Ranks devices by interpreted operational impact, not raw diff volume.</div>
+            <div class="chart-wrap"><canvas id="deviceImpactChart"></canvas></div>
+        </div>
+    </div>
+
+    <div id="device-findings" class="section-title">
+        <div class="section-dot"></div>
+        <h2>Device Findings</h2>
+    </div>
+
+
+    <div id="device-site-a-sw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-A-SW-1.txt</div>
+            <div class="device-summary">Findings: 8 | Impact Score: 22 | Evidence Sections: 6</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding stable">
+        <div class="finding-title">
+            <span class="badge badge-stable">Stable</span>
+            <span class="finding-heading">BGP Peer Added</span>
+            <span class="peer-name">ISP-B</span>
+            <span class="peer-ip">198.51.100.9</span>
+            <span class="peer-ip">AS64497</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Not Present</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>0</span><span class="arrow">→</span><span>815</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>0</span><span class="arrow">→</span><span>815</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Up/Down</div>
+                <div class="state-flow"><span>Not Present</span><span class="arrow">→</span><span>00:52:40</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This peer was not present in the precheck but appeared in the postcheck BGP summary.</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+        
+    </div>
+    
+
+    <div class="finding attention">
+        <div class="finding-title">
+            <span class="badge badge-attention">Attention</span>
+            <span class="finding-heading">BGP Peer Administratively Disabled</span>
+            <span class="peer-name">ISP-A</span>
+            <span class="peer-ip">198.51.100.1</span>
+            <span class="peer-ip">AS64496</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Idle(Admin)</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>812</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>812</span><span class="arrow">→</span><span>0</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Up/Down</div>
+                <div class="state-flow"><span>21d04h</span><span class="arrow">→</span><span>00:01:12</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">The peer transitioned from established to administratively idle.</div>
+        <div class="evidence">Evidence: show ip bgp summary + related BGP shutdown/no shutdown config</div>
+        
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<div class="context">  interface Ethernet49/1</div>
+<div class="added">+    shutdown</div>
+<div class="context">  interface Ethernet50/1</div>
+<div class="removed">-    shutdown</div>
+<div class="context">  router bgp 64500</div>
+<div class="added">+    neighbor 198.51.100.1 shutdown</div>
+<div class="added">+    neighbor 198.51.100.9 remote-as 64497</div>
+<div class="added">+    neighbor 198.51.100.9 description ISP-B</div>
+<div class="added">+    neighbor 198.51.100.9 route-map ISP-IN in</div>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show interfaces status</summary>
+                <div class="diff-box">
+
+<div class="added">+ Et49/1     ISP-A uplink       disabled     routed   full   10G    10GBASE-LR</div>
+<div class="removed">- Et49/1     ISP-A uplink       connected    routed   full   10G    10GBASE-LR</div>
+<div class="added">+ Et50/1     ISP-B uplink       connected    routed   full   10G    10GBASE-LR</div>
+<div class="removed">- Et50/1     ISP-B uplink       notconnect   routed   full   10G    10GBASE-LR</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip bgp summary</summary>
+                <div class="diff-box">
+
+<div class="added">+ ISP-A 198.51.100.1 AS64496 Idle(Admin)</div>
+<div class="removed">- ISP-A 198.51.100.1 AS64496 Estab 812 812</div>
+<div class="added">+ ISP-B 198.51.100.9 AS64497 Estab 815 815</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip interface brief</summary>
+                <div class="diff-box">
+
+<div class="removed">- Ethernet49/1      198.51.100.2/30      up           up                 1500</div>
+<div class="removed">- Ethernet50/1      198.51.100.10/30     down         down               1500</div>
+<div class="added">+ Ethernet49/1      198.51.100.2/30      down         down               1500</div>
+<div class="added">+ Ethernet50/1      198.51.100.10/30     up           up                 1500</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show ip route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">-  B E      0.0.0.0/0 [20/0] via 198.51.100.1, Ethernet49/1</div>
+<div class="added">+  B E      0.0.0.0/0 [20/0] via 198.51.100.9, Ethernet50/1</div>
+<div class="removed">-  C        198.51.100.0/30 is directly connected, Ethernet49/1</div>
+<div class="added">+  C        198.51.100.8/30 is directly connected, Ethernet50/1</div>
+<div class="removed">-  B E      203.0.113.0/24 [20/0] via 198.51.100.1, Ethernet49/1</div>
+<div class="added">+  B E      203.0.113.0/24 [20/0] via 198.51.100.9, Ethernet50/1</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show running-config</summary>
+                <div class="diff-box">
+
+<div class="added">+ !</div>
+<div class="added">+ vlan 240</div>
+<div class="added">+    name ISP-B-TRANSIT</div>
+<div class="added">+    shutdown</div>
+<div class="removed">-    shutdown</div>
+<div class="added">+    neighbor 198.51.100.1 shutdown</div>
+<div class="added">+    neighbor 198.51.100.9 remote-as 64497</div>
+<div class="added">+    neighbor 198.51.100.9 description ISP-B</div>
+<div class="added">+    neighbor 198.51.100.9 route-map ISP-IN in</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show vlan brief</summary>
+                <div class="diff-box">
+
+<div class="added">+ 240   ISP-B-TRANSIT                    active    Et50/1</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-a-sw-2" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-A-SW-2.txt</div>
+            <div class="device-summary">Findings: 1 | Impact Score: 1 | Evidence Sections: 3</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding stable">
+        <div class="finding-title">
+            <span class="badge badge-stable">Stable</span>
+            <span class="finding-heading">BGP Prefix Count Changed As Planned</span>
+            <span class="peer-name">SITE-A-SW-1</span>
+            <span class="peer-ip">10.0.0.1</span>
+            <span class="peer-ip">AS64500</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">State</div>
+                <div class="state-flow"><span>Estab</span><span class="arrow">→</span><span>Estab</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Received</div>
+                <div class="state-flow"><span>812</span><span class="arrow">→</span><span>815</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Prefixes Accepted</div>
+                <div class="state-flow"><span>812</span><span class="arrow">→</span><span>815</span></div>
+            </div>
+            <div>
+                <div class="mini-label">Up/Down</div>
+                <div class="state-flow"><span>34d11h</span><span class="arrow">→</span><span>34d11h</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Prefix count changed by +3, matching the expectation of a change of +3. Note: SITE-A-SW-1 re-advertises the three ISP-B transit prefixes over iBGP</div>
+        <div class="evidence">Evidence: show ip bgp summary</div>
+        
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show ip bgp summary</summary>
+                <div class="diff-box">
+
+<div class="removed">- SITE-A-SW-1 10.0.0.1 AS64500 Estab 812 812</div>
+<div class="added">+ SITE-A-SW-1 10.0.0.1 AS64500 Estab 815 815</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show running-config</summary>
+                <div class="diff-box">
+
+<div class="added">+ !</div>
+<div class="added">+ vlan 240</div>
+<div class="added">+    name ISP-B-TRANSIT</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show vlan brief</summary>
+                <div class="diff-box">
+
+<div class="added">+ 240   ISP-B-TRANSIT                    active    </div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-a-fw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-A-FW-1.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 2</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor, prefix, prefix-list or interface address changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+
+            <details>
+                <summary>show config running</summary>
+                <div class="diff-box">
+
+<div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR from outside</div>
+<div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR to inside</div>
+<div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR source 198.51.100.9</div>
+<div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR destination 10.20.0.50</div>
+<div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR application [ snmp ]</div>
+<div class="added">+ set rulebase security rules ISP-B-BGP-MONITOR action allow</div>
+
+                </div>
+            </details>
+
+
+            <details>
+                <summary>show routing route - Large routing evidence</summary>
+                <div class="diff-box">
+
+<div class="removed">- 0.0.0.0/0                                   10.10.200.2                             10     A S        5266  ethernet1/1</div>
+<div class="added">+ 0.0.0.0/0                                   10.10.200.2                             10     A S        5288  ethernet1/1</div>
+<div class="removed">- 10.10.200.0/24                              10.10.200.254                           0      A C        5266  ethernet1/1</div>
+<div class="added">+ 10.10.200.0/24                              10.10.200.254                           0      A C        5288  ethernet1/1</div>
+<div class="removed">- 10.20.0.0/16                                10.20.0.1                               0      A C        5266  ethernet1/2</div>
+<div class="added">+ 10.20.0.0/16                                10.20.0.1                               0      A C        5288  ethernet1/2</div>
+
+                </div>
+            </details>
+
+
+        </div>
+    </div>
+    
+
+    <div id="device-site-b-sw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">SITE-B-SW-1.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 0</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor, prefix, prefix-list or interface address changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+<p class="empty">No raw differences detected.</p>
+
+        </div>
+    </div>
+    
+
+</div>
+
+<div class="footer">
+    Generated 2026-10-02 16:47:40 | Maintenance Report
+</div>
+
+<script>
+const healthLabels = ["Stable", "Changed", "Attention", "Action Required"];
+const healthValues = [2, 6, 1, 0];
+
+const categoryLabels = ["Configuration", "Protocol", "Routing", "Interface", "Layer 2", "Firewall", "System", "Evidence only"];
+const categoryValues = [9, 4, 3, 1, 2, 0, 0, 1];
+
+const deviceLabels = ["SITE-A-SW-1", "SITE-A-SW-2", "SITE-A-FW-1", "SITE-B-SW-1"];
+const deviceImpact = [22, 1, 0, 0];
+
+Chart.defaults.color = "#cbd5e1";
+Chart.defaults.borderColor = "rgba(148, 163, 184, 0.18)";
+Chart.defaults.font.family = "Segoe UI, Arial, sans-serif";
+
+new Chart(document.getElementById("healthChart"), {
+    type: "doughnut",
+    data: {
+        labels: healthLabels,
+        datasets: [{
+            data: healthValues,
+            backgroundColor: [
+                "rgba(34, 197, 94, 0.78)",
+                "rgba(56, 189, 248, 0.78)",
+                "rgba(245, 158, 11, 0.78)",
+                "rgba(239, 68, 68, 0.78)"
+            ],
+            borderColor: "rgba(15, 23, 42, 0.92)",
+            borderWidth: 3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: "bottom" }
+        },
+        cutout: "68%"
+    }
+});
+
+new Chart(document.getElementById("categoryChart"), {
+    type: "bar",
+    data: {
+        labels: categoryLabels,
+        datasets: [{
+            label: "Findings / evidence items",
+            data: categoryValues,
+            backgroundColor: "rgba(56, 189, 248, 0.72)",
+            borderRadius: 8
+        }]
+    },
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+new Chart(document.getElementById("deviceImpactChart"), {
+    type: "bar",
+    data: {
+        labels: deviceLabels,
+        datasets: [{
+            label: "Impact score",
+            data: deviceImpact,
+            backgroundColor: "rgba(167, 139, 250, 0.72)",
+            borderRadius: 8
+        }]
+    },
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        },
+        plugins: {
+            legend: { position: "bottom" }
+        }
+    }
+});
+</script>
+
+</body>
+</html>

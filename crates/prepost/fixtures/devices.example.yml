@@ -1,0 +1,100 @@
+# Device inventory - EXAMPLE FILE
+#
+# Copy this file to inventory/devices.yml and replace the hosts with
+# your own management IPs or hostnames. devices.yml is gitignored so
+# real device addresses never end up in the repository.
+#
+# Each platform entry:
+#   name:        friendly label, used only for messages
+#   device_type: netmiko driver name (arista_eos, paloalto_panos,
+#                cisco_ios, ...). See netmiko's supported platforms.
+#   hosts:       management IPs/hostnames reached over SSH
+#   commands:    the show commands captured for that platform, in order
+#
+# All commands should be read-only "show"-style commands. The one
+# exception below is PAN-OS "set cli config-output-format set", which
+# only changes how the running config is DISPLAYED (as set commands,
+# which diff far better than the default XML-ish tree) - it does not
+# modify the device.
+#
+# Optional "pairs:" names redundant pairs whose postcheck captures the
+# HTML report compares against each other (same-named prefix-lists and
+# route-maps, PAN-OS HA state). Pairs whose hostnames differ only by a
+# trailing number (SITE-A-SW-1 / SITE-A-SW-2) are inferred from the
+# capture file names without being listed; list the ones that are not:
+#
+# pairs:
+#   - [CORE-EAST, CORE-WEST]
+#   - [EDGE-FW-PRIMARY, EDGE-FW-SECONDARY]
+
+platforms:
+  - name: arista
+    device_type: arista_eos
+    hosts:
+      - 192.0.2.11
+      - 192.0.2.12
+      - 192.0.2.13
+    commands:
+      - show mlag config-sanity
+      - show ip interface brief
+      - show vlan brief
+      - show mac address-table
+      - show ip arp
+      - show interfaces status
+      - show interfaces trunk
+      - show port-channel summary
+      - show interfaces transceiver
+      - show lldp neighbors
+      - show ip ospf neighbor
+      - show ip ospf interface
+      - show ip route ospf
+      - show ip bgp summary
+      - show ip route
+      - show ip bgp
+      # Routing policy, for changes that edit what a peer is sent or
+      # accepted. The running-config diff shows the edit; these two show
+      # the lists as the switch has them, which is easier to read when a
+      # peer suddenly sends or receives a different number of prefixes.
+      - show ip prefix-list
+      - show route-map
+      - show running-config
+      - show version
+
+  - name: paloalto
+    device_type: paloalto_panos
+    hosts:
+      - 192.0.2.21
+      - 192.0.2.22
+    commands:
+      - show system info
+      - show high-availability state
+      - show routing route
+      - show routing protocol bgp peer
+      - show routing protocol ospf neighbor
+      # IPsec / IKE tunnel state. "show vpn flow" is the one-line-per-
+      # tunnel up/down view; ike-sa and ipsec-sa are phase 1 / phase 2.
+      - show vpn flow
+      - show vpn ike-sa
+      - show vpn ipsec-sa
+      # LSVPN (GlobalProtect Large Scale VPN). The first lists the
+      # satellites connected to a hub gateway; the second, run on a
+      # satellite, shows which hub it is connected to. A firewall that
+      # is not in that role just returns a CLI error, which is captured
+      # and diffs clean (same error before and after). To avoid that,
+      # split hubs and satellites into two platform entries that share
+      # device_type: paloalto_panos but carry different command lists.
+      - show global-protect-gateway current-satellite
+      - show global-protect-satellite current-gateway
+      # Hub-side LSVPN state. The gateway list proves each gateway still
+      # has its tunnel, pool, access routes and certificate; the flow
+      # table shows the live site-to-site tunnels (its counters are
+      # normalized away); the cookie lifetime is a portal-wide setting
+      # that is easy to change by accident and hard to notice.
+      - show global-protect-gateway gateway
+      - show global-protect-gateway flow-site-to-site
+      - show global-protect-portal satellite-cookie-expiration
+      # Interface state, so a new or missing tunnel/loopback is obvious
+      # without reading the whole config.
+      - show interface all
+      - set cli config-output-format set
+      - show config running

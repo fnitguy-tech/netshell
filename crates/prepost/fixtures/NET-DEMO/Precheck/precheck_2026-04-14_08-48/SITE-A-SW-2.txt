@@ -1,0 +1,137 @@
+Hostname: SITE-A-SW-2
+IP Address: 192.0.2.2
+Generated: 2026-04-14 08:48:13.402118
+================================================================================
+
+
+### show ip interface brief ###
+--------------------------------------------------------------------------------
+                                                                              Address
+Interface         IP Address           Status       Protocol           MTU    Owner
+----------------- -------------------- ------------ -------------- ---------- -------
+Loopback0         192.0.2.2/32         up           up                65535
+Vlan200           10.10.200.3/24       up           up                 1500
+Vlan4000          10.0.0.2/30          up           up                 1500
+
+
+
+### show vlan brief ###
+--------------------------------------------------------------------------------
+VLAN  Name                             Status    Ports
+----- -------------------------------- --------- -------------------------------
+1     default                          active    Et1, Et2, Et3, Et4
+200   USERS                            active    Et1, Et2, Po1
+210   SERVERS                          active    Po1
+4000  IBGP-XLINK                       active    Et47/1
+
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et2        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et47/1     to SITE-A-SW-1     connected    4000     full   10G    10GBASE-SR
+Po1        to SERVER-AGG      connected    trunk    full   20G    N/A
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.1       1        default  1   FULL/DR                00:00:29    10.0.0.1        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.2, local AS number 64500
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  SITE-A-SW-1       10.0.0.1         4 64500          61120     61118    0    0   34d11h   Estab   812    812
+
+
+
+### show ip route ###
+--------------------------------------------------------------------------------
+VRF: default
+Codes: C - connected, S - static, K - kernel,
+       O - OSPF, O3 - OSPFv3, B - Other BGP Routes, B I - iBGP, B E - eBGP,
+       L - local, I L1 - IS-IS level 1, I L2 - IS-IS level 2
+
+Gateway of last resort:
+ B I      0.0.0.0/0 [200/0] via 10.0.0.1, Vlan4000
+
+ C        10.0.0.0/30 is directly connected, Vlan4000
+ C        10.10.200.0/24 is directly connected, Vlan200
+ S        10.20.0.0/16 [1/0] via 10.10.200.254, Vlan200
+ O        192.0.2.1/32 [110/20] via 10.0.0.1, Vlan4000
+ C        192.0.2.2/32 is directly connected, Loopback0
+ B I      203.0.113.0/24 [200/0] via 10.0.0.1, Vlan4000
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-A-SW-2 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-A-SW-2
+!
+vlan 200
+   name USERS
+!
+vlan 210
+   name SERVERS
+!
+vlan 4000
+   name IBGP-XLINK
+!
+interface Ethernet47/1
+   description to SITE-A-SW-1
+   switchport mode trunk
+!
+interface Loopback0
+   ip address 192.0.2.2/32
+!
+interface Vlan4000
+   ip address 10.0.0.2/30
+!
+ip routing
+!
+ip route 10.20.0.0/16 10.10.200.254
+!
+router bgp 64500
+   router-id 192.0.2.2
+   neighbor 10.0.0.1 remote-as 64500
+   neighbor 10.0.0.1 description SITE-A-SW-1
+   network 10.20.0.0/16
+!
+router ospf 1
+   router-id 192.0.2.2
+   network 10.0.0.0/30 area 0.0.0.0
+   network 192.0.2.2/32 area 0.0.0.0
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000002
+Hardware MAC address: 001c.7300.0002
+System MAC address: 001c.7300.0002
+
+Software image version: 4.32.2F
+Architecture: x86_64
+Internal build version: 4.32.2F-38195967.4322F
+Internal build ID: 3c3a6a07-bd54-4a8f-8f2b-3a2f3b2f0001
+Image format version: 3.0
+Image optimization: Default
+
+Uptime: 34 days, 11 hours and 8 minutes
+Total memory: 8099732 kB
+Free memory: 5793488 kB
+

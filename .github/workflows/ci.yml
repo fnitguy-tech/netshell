@@ -1,5 +1,6 @@
-# Format, lint and test on the three desktop platforms. The tests talk
-# to an in-process fake SSH server, so no device access is needed.
+# Format, lint and test both crates on the three desktop platforms. The
+# netshell tests talk to an in-process fake SSH server and the prepost
+# tests work from bundled captures, so no device access is needed.
 name: ci
 
 on:
@@ -24,5 +25,5 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace

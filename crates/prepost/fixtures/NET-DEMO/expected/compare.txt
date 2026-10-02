@@ -1,0 +1,130 @@
+Pre/Post Maintenance Comparison Report
+================================================================================
+
+Ticket:           NET-DEMO
+Precheck Folder:  reports/NET-DEMO/Precheck/precheck_2026-04-14_08-48
+Postcheck Folder: reports/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42
+
+File Summary
+--------------------------------------------------------------------------------
+Common files: 4
+Missing in postcheck: 0
+New in postcheck: 0
+
+
+================================================================================
+Device/File: SITE-A-FW-1.txt
+================================================================================
+
+--------------------------------------------------------------------------------
+Command: show config running
+--------------------------------------------------------------------------------
+Differences detected.
+
++ set rulebase security rules ISP-B-BGP-MONITOR from outside
++ set rulebase security rules ISP-B-BGP-MONITOR to inside
++ set rulebase security rules ISP-B-BGP-MONITOR source 198.51.100.9
++ set rulebase security rules ISP-B-BGP-MONITOR destination 10.20.0.50
++ set rulebase security rules ISP-B-BGP-MONITOR application [ snmp ]
++ set rulebase security rules ISP-B-BGP-MONITOR action allow
+
+================================================================================
+Device/File: SITE-A-SW-1.txt
+================================================================================
+
+--------------------------------------------------------------------------------
+Command: show interfaces status
+--------------------------------------------------------------------------------
+Differences detected.
+
++ Et49/1     ISP-A uplink       disabled     routed   full   10G    10GBASE-LR
+- Et49/1     ISP-A uplink       connected    routed   full   10G    10GBASE-LR
++ Et50/1     ISP-B uplink       connected    routed   full   10G    10GBASE-LR
+- Et50/1     ISP-B uplink       notconnect   routed   full   10G    10GBASE-LR
+
+--------------------------------------------------------------------------------
+Command: show ip bgp summary
+--------------------------------------------------------------------------------
+Differences detected.
+
++ ISP-A 198.51.100.1 4 Idle(Admin)
+- ISP-A 198.51.100.1 4 Estab 812 812
++ ISP-B 198.51.100.9 4 Estab 815 815
+
+--------------------------------------------------------------------------------
+Command: show ip interface brief
+--------------------------------------------------------------------------------
+Differences detected.
+
+- Ethernet49/1      198.51.100.2/30      up           up                 1500
+- Ethernet50/1      198.51.100.10/30     down         down               1500
++ Ethernet49/1      198.51.100.2/30      down         down               1500
++ Ethernet50/1      198.51.100.10/30     up           up                 1500
+
+--------------------------------------------------------------------------------
+Command: show ip route
+--------------------------------------------------------------------------------
+Differences detected.
+
+-  B E      0.0.0.0/0 [20/0] via 198.51.100.1, Ethernet49/1
++  B E      0.0.0.0/0 [20/0] via 198.51.100.9, Ethernet50/1
+-  C        198.51.100.0/30 is directly connected, Ethernet49/1
++  C        198.51.100.8/30 is directly connected, Ethernet50/1
+-  B E      203.0.113.0/24 [20/0] via 198.51.100.1, Ethernet49/1
++  B E      203.0.113.0/24 [20/0] via 198.51.100.9, Ethernet50/1
+
+--------------------------------------------------------------------------------
+Command: show running-config
+--------------------------------------------------------------------------------
+Differences detected.
+
++ !
++ vlan 240
++    name ISP-B-TRANSIT
++    shutdown
+-    shutdown
++    neighbor 198.51.100.1 shutdown
++    neighbor 198.51.100.9 remote-as 64497
++    neighbor 198.51.100.9 description ISP-B
++    neighbor 198.51.100.9 route-map ISP-IN in
+
+--------------------------------------------------------------------------------
+Command: show vlan brief
+--------------------------------------------------------------------------------
+Differences detected.
+
++ 240   ISP-B-TRANSIT                    active    Et50/1
+
+================================================================================
+Device/File: SITE-A-SW-2.txt
+================================================================================
+
+--------------------------------------------------------------------------------
+Command: show ip bgp summary
+--------------------------------------------------------------------------------
+Differences detected.
+
+- SITE-A-SW-1 10.0.0.1 4 Estab 812 812
++ SITE-A-SW-1 10.0.0.1 4 Estab 815 815
+
+--------------------------------------------------------------------------------
+Command: show running-config
+--------------------------------------------------------------------------------
+Differences detected.
+
++ !
++ vlan 240
++    name ISP-B-TRANSIT
+
+--------------------------------------------------------------------------------
+Command: show vlan brief
+--------------------------------------------------------------------------------
+Differences detected.
+
++ 240   ISP-B-TRANSIT                    active    
+
+================================================================================
+Device/File: SITE-B-SW-1.txt
+================================================================================
+
+No meaningful changes detected.

@@ -1,0 +1,174 @@
+Hostname: SITE-A-SW-1
+IP Address: 192.0.2.1
+Generated: 2026-04-14 10:42:51.117760
+================================================================================
+
+
+### show ip interface brief ###
+--------------------------------------------------------------------------------
+                                                                              Address
+Interface         IP Address           Status       Protocol           MTU    Owner
+----------------- -------------------- ------------ -------------- ---------- -------
+Ethernet49/1      198.51.100.2/30      down         down               1500
+Ethernet50/1      198.51.100.10/30     up           up                 1500
+Loopback0         192.0.2.1/32         up           up                65535
+Vlan200           10.10.200.2/24       up           up                 1500
+Vlan4000          10.0.0.1/30          up           up                 1500
+
+
+
+### show vlan brief ###
+--------------------------------------------------------------------------------
+VLAN  Name                             Status    Ports
+----- -------------------------------- --------- -------------------------------
+1     default                          active    Et1, Et2, Et3, Et4
+200   USERS                            active    Et1, Et2, Po1
+210   SERVERS                          active    Po1
+4000  IBGP-XLINK                       active    Et47/1
+240   ISP-B-TRANSIT                    active    Et50/1
+
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et2        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et47/1     to SITE-A-SW-2     connected    4000     full   10G    10GBASE-SR
+Et49/1     ISP-A uplink       disabled     routed   full   10G    10GBASE-LR
+Et50/1     ISP-B uplink       connected    routed   full   10G    10GBASE-LR
+Po1        to SERVER-AGG      connected    trunk    full   20G    N/A
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.2       1        default  1   FULL/BDR               00:00:31    10.0.0.2        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.1, local AS number 64500
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  ISP-A             198.51.100.1     4 64496          48377     48102    0    0   00:01:12 Idle(Admin)
+  ISP-B             198.51.100.9     4 64497            213       201    0    0   00:52:40 Estab   815    815
+  SITE-A-SW-2       10.0.0.2         4 64500          61402     61399    0    0   34d11h   Estab   3      3
+
+
+
+### show ip route ###
+--------------------------------------------------------------------------------
+VRF: default
+Codes: C - connected, S - static, K - kernel,
+       O - OSPF, O3 - OSPFv3, B - Other BGP Routes, B I - iBGP, B E - eBGP,
+       L - local, I L1 - IS-IS level 1, I L2 - IS-IS level 2
+
+Gateway of last resort:
+ B E      0.0.0.0/0 [20/0] via 198.51.100.9, Ethernet50/1
+
+ C        10.0.0.0/30 is directly connected, Vlan4000
+ C        10.10.200.0/24 is directly connected, Vlan200
+ B I      10.20.0.0/16 [200/0] via 10.0.0.2, Vlan4000
+ C        192.0.2.1/32 is directly connected, Loopback0
+ O        192.0.2.2/32 [110/20] via 10.0.0.2, Vlan4000
+ C        198.51.100.8/30 is directly connected, Ethernet50/1
+ B E      203.0.113.0/24 [20/0] via 198.51.100.9, Ethernet50/1
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-A-SW-1 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-A-SW-1
+!
+vlan 200
+   name USERS
+!
+vlan 210
+   name SERVERS
+!
+vlan 240
+   name ISP-B-TRANSIT
+!
+vlan 4000
+   name IBGP-XLINK
+!
+interface Ethernet47/1
+   description to SITE-A-SW-2
+   switchport mode trunk
+!
+interface Ethernet49/1
+   description ISP-A uplink
+   no switchport
+   ip address 198.51.100.2/30
+   shutdown
+!
+interface Ethernet50/1
+   description ISP-B uplink
+   no switchport
+   ip address 198.51.100.10/30
+!
+interface Loopback0
+   ip address 192.0.2.1/32
+!
+interface Vlan4000
+   ip address 10.0.0.1/30
+!
+ip routing
+!
+router bgp 64500
+   router-id 192.0.2.1
+   neighbor 10.0.0.2 remote-as 64500
+   neighbor 10.0.0.2 description SITE-A-SW-2
+   neighbor 10.0.0.2 next-hop-self
+   neighbor 198.51.100.1 remote-as 64496
+   neighbor 198.51.100.1 description ISP-A
+   neighbor 198.51.100.1 route-map ISP-IN in
+   neighbor 198.51.100.1 shutdown
+   neighbor 198.51.100.9 remote-as 64497
+   neighbor 198.51.100.9 description ISP-B
+   neighbor 198.51.100.9 route-map ISP-IN in
+   network 10.10.200.0/24
+!
+router ospf 1
+   router-id 192.0.2.1
+   network 10.0.0.0/30 area 0.0.0.0
+   network 192.0.2.1/32 area 0.0.0.0
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000001
+Hardware MAC address: 001c.7300.0001
+System MAC address: 001c.7300.0001
+
+Software image version: 4.32.2F
+Architecture: x86_64
+Internal build version: 4.32.2F-38195967.4322F
+Internal build ID: 3c3a6a07-bd54-4a8f-8f2b-3a2f3b2f0001
+Image format version: 3.0
+Image optimization: Default
+
+Uptime: 21 days, 6 hours and 14 minutes
+Total memory: 8099732 kB
+Free memory: 5817204 kB
+
+
+
+### show interfaces transceiver ###
+--------------------------------------------------------------------------------
+Port       Temp   Voltage    Bias      Optical   Optical
+                (C)       (V)      (mA)     Tx (mW)   Rx (mW)
+Et49/1     36.2   3.28   32.1   0.5771   0.0001
+Et50/1     35.4   3.29   31.9   0.5820   0.5904
+

@@ -1,0 +1,71 @@
+Hostname: SITE-B-SW-1
+IP Address: 192.0.2.11
+Generated: 2026-04-14 08:48:13.402118
+================================================================================
+
+
+### show interfaces status ###
+--------------------------------------------------------------------------------
+Port       Name               Status       Vlan     Duplex Speed  Type         Flags Encapsulation
+Et1        USER-ACCESS        connected    200      full   1G     1000BASE-T
+Et49/1     ISP-C uplink       connected    routed   full   10G    10GBASE-LR
+
+
+
+### show ip ospf neighbor ###
+--------------------------------------------------------------------------------
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+192.0.2.12      1        default  1   FULL/BDR               00:00:30    10.0.1.2        Vlan4000
+
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+BGP summary information for VRF default
+Router identifier 192.0.2.11, local AS number 64501
+Neighbor Status Codes: m - Under maintenance
+  Description       Neighbor         V AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  ISP-C             198.51.100.17    4 64498          90031     89701    0    0   88d02h   Estab   804    804
+
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+! device: SITE-B-SW-1 (DCS-7050SX3-48YC8, EOS-4.32.2F)
+!
+hostname SITE-B-SW-1
+!
+vlan 200
+   name USERS
+!
+interface Ethernet49/1
+   description ISP-C uplink
+   no switchport
+   ip address 198.51.100.18/30
+!
+interface Loopback0
+   ip address 192.0.2.11/32
+!
+ip routing
+!
+router bgp 64501
+   router-id 192.0.2.11
+   neighbor 198.51.100.17 remote-as 64498
+   neighbor 198.51.100.17 description ISP-C
+!
+end
+
+
+
+### show version ###
+--------------------------------------------------------------------------------
+Arista DCS-7050SX3-48YC8
+Hardware version: 11.00
+Serial number: JPE00000011
+Software image version: 4.32.2F
+Architecture: x86_64
+
+Uptime: 88 days, 2 hours and 47 minutes
+Total memory: 8099732 kB
+Free memory: 5903320 kB
+

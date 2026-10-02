@@ -1,0 +1,80 @@
+Hostname: SITE-A-FW-1
+IP Address: 10.10.200.254
+Generated: 2026-04-14 08:48:13.402118
+================================================================================
+
+
+### show system info ###
+--------------------------------------------------------------------------------
+hostname: SITE-A-FW-1
+ip-address: 10.10.200.254
+netmask: 255.255.255.0
+default-gateway: 10.10.200.2
+mac-address: 00:1b:17:00:00:10
+time: Tue Apr 14 08:48:40 2026
+uptime: 61 days, 3:18:22
+family: 400
+model: PA-440
+serial: 000000000001
+sw-version: 11.1.4-h7
+app-version: 8960-9200
+threat-version: 8960-9200
+url-filtering-version: 20260414.20080
+multi-vsys: off
+operational-mode: normal
+
+
+
+### show high-availability state ###
+--------------------------------------------------------------------------------
+Mode: Active-Passive
+Local Information:
+        State: active
+        Priority: 100
+Peer Information:
+        Connection status: up
+        State: passive
+        Priority: 110
+
+
+
+### show routing route ###
+--------------------------------------------------------------------------------
+flags: A:active, ?:loose, C:connect, H:host, S:static, ~:internal, R:rip, O:ospf, B:bgp, Oi:ospf intra-area, Oo:ospf inter-area, O1:ospf ext-type-1, O2:ospf ext-type-2, E:ecmp, M:multicast
+
+VIRTUAL ROUTER: default (id 1)
+  ==========
+destination                                 nexthop                                 metric flags      age   interface          next-AS
+0.0.0.0/0                                   10.10.200.2                             10     A S        5266  ethernet1/1
+10.10.200.0/24                              10.10.200.254                           0      A C        5266  ethernet1/1
+10.20.0.0/16                                10.20.0.1                               0      A C        5266  ethernet1/2
+total routes shown: 3
+
+
+
+### set cli config-output-format set ###
+--------------------------------------------------------------------------------
+
+
+
+
+### show config running ###
+--------------------------------------------------------------------------------
+set deviceconfig system hostname SITE-A-FW-1
+set deviceconfig system ip-address 10.10.200.254
+set deviceconfig system netmask 255.255.255.0
+set deviceconfig system default-gateway 10.10.200.2
+set network interface ethernet ethernet1/1 layer3 ip 10.10.200.254/24
+set network interface ethernet ethernet1/2 layer3 ip 10.20.0.1/16
+set zone outside network layer3 ethernet1/1
+set zone inside network layer3 ethernet1/2
+set rulebase security rules INSIDE-TO-OUTSIDE from inside
+set rulebase security rules INSIDE-TO-OUTSIDE to outside
+set rulebase security rules INSIDE-TO-OUTSIDE source any
+set rulebase security rules INSIDE-TO-OUTSIDE destination any
+set rulebase security rules INSIDE-TO-OUTSIDE application [ web-browsing ssl dns ]
+set rulebase security rules INSIDE-TO-OUTSIDE action allow
+set rulebase security rules DENY-ALL from any
+set rulebase security rules DENY-ALL to any
+set rulebase security rules DENY-ALL action deny
+
