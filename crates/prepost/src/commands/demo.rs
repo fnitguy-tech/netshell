@@ -224,16 +224,15 @@ pub fn demo_jobs_in(fixtures: &Path) -> anyhow::Result<Vec<Job>> {
 }
 
 pub fn run(args: Args) -> anyhow::Result<()> {
+    if let Some(home) = &args.home {
+        // --home is $PREPOST_HOME for this run, so every module (the
+        // text diff and the HTML report included) writes under it and
+        // shows paths relative to it. Set before any thread exists.
+        unsafe { std::env::set_var("PREPOST_HOME", home) };
+    }
     let fixtures = fixtures_dir();
-    let dirs = match &args.home {
-        Some(home) => layout::ticket_dirs_under(&home.join("reports"), TICKET),
-        None => layout::ticket_dirs(TICKET),
-    };
-    // Paths shown relative to --home when given, else to the layout root.
-    let shown = |path: &Path| match &args.home {
-        Some(home) => path.strip_prefix(home).unwrap_or(path).display().to_string(),
-        None => layout::display_path(path),
-    };
+    let dirs = layout::ticket_dirs(TICKET);
+    let shown = |path: &Path| layout::display_path(path);
 
     let jobs = demo_jobs_in(&fixtures)?;
 

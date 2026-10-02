@@ -1,24 +1,26 @@
 //! BGP-relevant lines that changed in the running config.
 
-use similar::DiffTag;
-
 use crate::capture::Sections;
 
 use super::finding::{DiffKind, DiffLine};
-use super::rawdiff::line_diff_ops;
+use crate::difflib::ndiff;
 
 /// Keywords that make a config line BGP-relevant, on the line itself or
 /// on the block header an indented change sits under.
 pub const BGP_CONFIG_KEYWORDS: &[&str] = &[
     "router bgp",
+    "protocol bgp",
     "neighbor",
+    "peer-group",
+    "peer group",
     "route-map",
-    "community",
-    "shutdown",
     "prefix-list",
     "access-list",
     "access-group",
-    "peer-group",
+    "community",
+    "send-community",
+    "set community",
+    "match community",
     "redist",
     "aggregate-address",
     "valid-networks",
@@ -26,7 +28,8 @@ pub const BGP_CONFIG_KEYWORDS: &[&str] = &[
     "used-by",
     "bfd",
     "link-state",
-    "protocol bgp",
+    "shutdown",
+    "no shutdown",
 ];
 
 /// The running config lines of a capture: EOS/IOS `show running-config`
@@ -117,23 +120,14 @@ pub fn bgp_config_changes(pre: &Sections, post: &Sections) -> Vec<DiffLine> {
         }
     };
 
-    for (tag, old_range, new_range) in line_diff_ops(&pre_lines, &post_lines) {
-        match tag {
-            DiffTag::Equal => pre_lines[old_range].iter().for_each(|text| visit(text, None)),
-            DiffTag::Delete => pre_lines[old_range]
-                .iter()
-                .for_each(|text| visit(text, Some(Side::Removed))),
-            DiffTag::Insert => post_lines[new_range]
-                .iter()
-                .for_each(|text| visit(text, Some(Side::Added))),
-            DiffTag::Replace => {
-                pre_lines[old_range]
-                    .iter()
-                    .for_each(|text| visit(text, Some(Side::Removed)));
-                post_lines[new_range]
-                    .iter()
-                    .for_each(|text| visit(text, Some(Side::Added)));
-            }
+    // ndiff interleaves the two sides; "? " hint lines are never produced.
+    for line in ndiff(&pre_lines, &post_lines) {
+        if let Some(text) = line.strip_prefix("- ") {
+            visit(text, Some(Side::Removed));
+        } else if let Some(text) = line.strip_prefix("+ ") {
+            visit(text, Some(Side::Added));
+        } else if let Some(text) = line.strip_prefix("  ") {
+            visit(text, None);
         }
     }
 

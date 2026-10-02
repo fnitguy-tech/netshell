@@ -3,26 +3,12 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use similar::{Algorithm, DiffTag, capture_diff_slices};
-
 use crate::capture::Sections;
+use crate::difflib::ndiff;
 use crate::vpn::{VPN_FLOW_COMMANDS, VPN_GATEWAY_COMMANDS, VPN_SA_COMMANDS, VPN_SATELLITE_COMMANDS};
 
 use super::finding::{Classification, ClassificationCounts, DiffLine};
 use super::normalize::normalized_section;
-
-/// The diff operations between two line lists, in diff order. Each op
-/// is `(tag, old range, new range)`; a replace is one op covering the
-/// removed lines and the lines that took their place.
-pub(crate) fn line_diff_ops(
-    old: &[String],
-    new: &[String],
-) -> Vec<(DiffTag, std::ops::Range<usize>, std::ops::Range<usize>)> {
-    capture_diff_slices(Algorithm::Myers, old, new)
-        .iter()
-        .map(|op| op.as_tag_tuple())
-        .collect()
-}
 
 /// Normalized added/removed lines for every command whose normalized
 /// output differs, keyed by command (sorted).
@@ -41,15 +27,12 @@ pub fn raw_diffs(pre: &Sections, post: &Sections) -> BTreeMap<String, Vec<DiffLi
 
         let mut diff_lines = Vec::new();
 
-        for (tag, old_range, new_range) in line_diff_ops(&pre_lines, &post_lines) {
-            match tag {
-                DiffTag::Equal => {}
-                DiffTag::Delete => diff_lines.extend(pre_lines[old_range].iter().map(DiffLine::removed)),
-                DiffTag::Insert => diff_lines.extend(post_lines[new_range].iter().map(DiffLine::added)),
-                DiffTag::Replace => {
-                    diff_lines.extend(pre_lines[old_range].iter().map(DiffLine::removed));
-                    diff_lines.extend(post_lines[new_range].iter().map(DiffLine::added));
-                }
+        // ndiff order, so the evidence reads exactly as the Python report.
+        for line in ndiff(&pre_lines, &post_lines) {
+            if let Some(text) = line.strip_prefix("- ") {
+                diff_lines.push(DiffLine::removed(text));
+            } else if let Some(text) = line.strip_prefix("+ ") {
+                diff_lines.push(DiffLine::added(text));
             }
         }
 

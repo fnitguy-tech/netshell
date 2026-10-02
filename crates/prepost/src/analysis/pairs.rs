@@ -13,9 +13,9 @@ use std::sync::LazyLock;
 
 use indexmap::IndexMap;
 use regex::Regex;
-use similar::{Algorithm, DiffOp, capture_diff_slices};
 
 use crate::capture::Sections;
+use crate::difflib::ndiff;
 
 use super::finding::{Classification, DiffKind, DiffLine, Field, Finding, Impact};
 use super::prefix_list::{
@@ -464,40 +464,11 @@ pub fn pair_findings(
 fn differing_lines(a: &str, body_a: &[String], b: &str, body_b: &[String]) -> Vec<DiffLine> {
     let mut detail = Vec::new();
 
-    for op in capture_diff_slices(Algorithm::Myers, body_a, body_b) {
-        match op {
-            DiffOp::Equal { .. } => {}
-            DiffOp::Delete { old_index, old_len, .. } => {
-                detail.extend(
-                    body_a[old_index..old_index + old_len]
-                        .iter()
-                        .map(|line| DiffLine::removed(format!("{a}: {line}"))),
-                );
-            }
-            DiffOp::Insert { new_index, new_len, .. } => {
-                detail.extend(
-                    body_b[new_index..new_index + new_len]
-                        .iter()
-                        .map(|line| DiffLine::added(format!("{b}: {line}"))),
-                );
-            }
-            DiffOp::Replace {
-                old_index,
-                old_len,
-                new_index,
-                new_len,
-            } => {
-                detail.extend(
-                    body_a[old_index..old_index + old_len]
-                        .iter()
-                        .map(|line| DiffLine::removed(format!("{a}: {line}"))),
-                );
-                detail.extend(
-                    body_b[new_index..new_index + new_len]
-                        .iter()
-                        .map(|line| DiffLine::added(format!("{b}: {line}"))),
-                );
-            }
+    for line in ndiff(body_a, body_b) {
+        if let Some(text) = line.strip_prefix("- ") {
+            detail.push(DiffLine::removed(format!("{a}: {text}")));
+        } else if let Some(text) = line.strip_prefix("+ ") {
+            detail.push(DiffLine::added(format!("{b}: {text}")));
         }
     }
 

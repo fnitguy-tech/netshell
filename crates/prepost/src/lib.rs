@@ -15,6 +15,7 @@
 //! | `redact`        | `--redact-secrets`: strips passwords/hashes/keys            |
 //! | `capture`       | the `### command ###` capture file format                   |
 //! | `textcompare`   | normalization rules + the quick .txt diff report            |
+//! | `difflib`       | port of Python's ndiff, so every diff orders lines the same |
 //! | `analysis`      | parsers, findings, pair symmetry, impact scoring            |
 //! | `expectations`  | expected BGP prefix deltas for one change                   |
 //! | `report`        | the self-contained HTML report                              |
@@ -28,6 +29,7 @@ pub mod analysis;
 pub mod capture;
 pub mod collect;
 pub mod commands;
+pub mod difflib;
 pub mod expectations;
 pub mod inventory;
 pub mod layout;
