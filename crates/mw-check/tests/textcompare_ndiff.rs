@@ -3,7 +3,7 @@
 //! Every `expected` is `[l for l in difflib.ndiff(a, b) if not
 //! l.startswith("? ")]`; never edit those lines by hand.
 
-use mw::textcompare::ndiff;
+use mw_check::textcompare::ndiff;
 
 fn lines(items: &[&str]) -> Vec<String> {
     items.iter().map(|s| s.to_string()).collect()

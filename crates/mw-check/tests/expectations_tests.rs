@@ -11,11 +11,11 @@
 
 use std::path::{Path, PathBuf};
 
-use mw::analysis::bgp::{PREFIX_DELTA_HEDGE, bgp_neighbor_findings};
-use mw::analysis::{Finding, Impact};
-use mw::analysis::{TITLE_AS_PLANNED, TITLE_DIFFERS, TITLE_NOT_MET, TITLE_UNEXPLAINED};
-use mw::capture::Sections;
-use mw::expectations::{Expectation, ExpectationsError, Expected, describe, for_device, load_expectations};
+use mw_check::analysis::bgp::{PREFIX_DELTA_HEDGE, bgp_neighbor_findings};
+use mw_check::analysis::{Finding, Impact};
+use mw_check::analysis::{TITLE_AS_PLANNED, TITLE_DIFFERS, TITLE_NOT_MET, TITLE_UNEXPLAINED};
+use mw_check::capture::Sections;
+use mw_check::expectations::{Expectation, ExpectationsError, Expected, describe, for_device, load_expectations};
 
 fn example_expectations() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/NET-DEMO/expectations.yml")

@@ -8,10 +8,10 @@
 //! valid-networks edit - the things that actually change what a peer is
 //! sent - never reached that context.
 
-use mw::analysis::bgp::bgp_neighbor_findings;
-use mw::analysis::config::{bgp_config_changes, count_config_changes};
-use mw::analysis::{DiffKind, DiffLine};
-use mw::capture::Sections;
+use mw_check::analysis::bgp::bgp_neighbor_findings;
+use mw_check::analysis::config::{bgp_config_changes, count_config_changes};
+use mw_check::analysis::{DiffKind, DiffLine};
+use mw_check::capture::Sections;
 
 const EOS_PRE: &[&str] = &[
     "ip prefix-list ISP-OUT",

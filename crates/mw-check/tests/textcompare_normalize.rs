@@ -10,7 +10,7 @@
 //! identity of a thing survives, the numbers that move without anyone
 //! touching the device do not.
 
-use mw::textcompare::{NOISY_STARTS, SKIP_COMPARE_COMMANDS, normalize_line};
+use mw_check::textcompare::{NOISY_STARTS, SKIP_COMPARE_COMMANDS, normalize_line};
 
 const FLOW: &str = "show global-protect-gateway flow-site-to-site";
 const GATEWAY: &str = "show global-protect-gateway gateway";

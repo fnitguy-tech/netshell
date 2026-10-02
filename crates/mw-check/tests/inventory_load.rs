@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use mw::inventory::{Inventory, InventoryError, build_jobs, load_inventory, load_pairs};
+use mw_check::inventory::{Inventory, InventoryError, build_jobs, load_inventory, load_pairs};
 
 fn example_inventory() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/devices.example.yml")

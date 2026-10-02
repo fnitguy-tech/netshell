@@ -6,7 +6,7 @@ Run from the repository root with Pillow installed:
     python3 assets/icons.py
 
 Outputs:
-    crates/mw/assets/mw.ico             embedded in mw.exe
+    crates/mw-check/assets/mw.ico       embedded in mw.exe
     crates/netshell/assets/netshell.ico embedded in netshell.exe
     assets/mw.png, assets/netshell.png  256 px previews for the README
 """
@@ -63,6 +63,6 @@ def write(image, ico_path, png_path):
 
 
 if __name__ == "__main__":
-    write(mw(), "crates/mw/assets/mw.ico", "assets/mw.png")
+    write(mw(), "crates/mw-check/assets/mw.ico", "assets/mw.png")
     write(netshell(), "crates/netshell/assets/netshell.ico", "assets/netshell.png")
-    print("wrote crates/mw/assets/mw.ico and crates/netshell/assets/netshell.ico")
+    print("wrote crates/mw-check/assets/mw.ico and crates/netshell/assets/netshell.ico")

@@ -63,19 +63,92 @@ pub fn stamp(phase: &str) -> &'static str {
         .unwrap_or_else(|| panic!("no demo stamp for phase {phase:?}"))
 }
 
-/// The directory holding `NET-DEMO/`: `$MW_FIXTURES`, else
-/// `./fixtures` when it has the demo, else the crate's own `fixtures/`.
-pub fn fixtures_dir() -> PathBuf {
+/// The demo dataset, compiled into the binary so `mw demo` works from
+/// a downloaded executable with no source tree around it.
+const EMBEDDED_FIXTURES: &[(&str, &str)] = &[
+    (
+        "NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-A-FW-1.txt",
+        include_str!("../../fixtures/NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-A-FW-1.txt"),
+    ),
+    (
+        "NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-A-SW-1.txt",
+        include_str!("../../fixtures/NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-A-SW-1.txt"),
+    ),
+    (
+        "NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-A-SW-2.txt",
+        include_str!("../../fixtures/NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-A-SW-2.txt"),
+    ),
+    (
+        "NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-B-SW-1.txt",
+        include_str!("../../fixtures/NET-DEMO/Precheck/precheck_2026-04-14_08-48/SITE-B-SW-1.txt"),
+    ),
+    (
+        "NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-A-FW-1.txt",
+        include_str!("../../fixtures/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-A-FW-1.txt"),
+    ),
+    (
+        "NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-A-SW-1.txt",
+        include_str!("../../fixtures/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-A-SW-1.txt"),
+    ),
+    (
+        "NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-A-SW-2.txt",
+        include_str!("../../fixtures/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-A-SW-2.txt"),
+    ),
+    (
+        "NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-B-SW-1.txt",
+        include_str!("../../fixtures/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42/SITE-B-SW-1.txt"),
+    ),
+    (
+        "NET-DEMO/SCENARIO.md",
+        include_str!("../../fixtures/NET-DEMO/SCENARIO.md"),
+    ),
+    (
+        "NET-DEMO/expectations.yml",
+        include_str!("../../fixtures/NET-DEMO/expectations.yml"),
+    ),
+    (
+        "devices.example.yml",
+        include_str!("../../fixtures/devices.example.yml"),
+    ),
+];
+
+/// Write the embedded dataset under the system temp directory (once
+/// per version) and return that directory.
+fn unpack_embedded_fixtures() -> anyhow::Result<PathBuf> {
+    let dir = std::env::temp_dir().join(format!("mw-{}-fixtures", env!("CARGO_PKG_VERSION")));
+    for (relative, contents) in EMBEDDED_FIXTURES {
+        let path = dir.join(relative);
+        if path.exists() {
+            continue;
+        }
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).with_context(|| format!("could not create {}", parent.display()))?;
+        }
+        fs::write(&path, contents).with_context(|| format!("could not write {}", path.display()))?;
+    }
+    Ok(dir)
+}
+
+/// The directory holding `NET-DEMO/`: `$MW_FIXTURES`, else `./fixtures`
+/// when it has the demo, else the crate's own `fixtures/` when this is
+/// a source checkout, else the copy compiled into the binary, unpacked
+/// under the temp directory.
+pub fn fixtures_dir() -> anyhow::Result<PathBuf> {
     if let Some(dir) = std::env::var_os("MW_FIXTURES").filter(|dir| !dir.is_empty()) {
-        return PathBuf::from(dir);
+        return Ok(PathBuf::from(dir));
     }
 
     let local = PathBuf::from("fixtures");
     if local.join(TICKET).is_dir() {
-        return local;
+        return Ok(local);
     }
 
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures")
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures");
+    if source.join(TICKET).is_dir() {
+        return Ok(source);
+    }
+
+    unpack_embedded_fixtures()
 }
 
 /// The source capture folder of one phase:
@@ -185,7 +258,7 @@ impl Connector for ReplayConnector {
 /// Same shape `inventory::build_jobs()` produces, without credentials,
 /// from the bundled fixtures (see [`fixtures_dir`]).
 pub fn demo_jobs() -> anyhow::Result<Vec<Job>> {
-    demo_jobs_in(&fixtures_dir())
+    demo_jobs_in(&fixtures_dir()?)
 }
 
 /// [`demo_jobs`] from an explicit fixtures directory. Each platform's
@@ -230,7 +303,7 @@ pub fn run(args: Args) -> anyhow::Result<()> {
         // shows paths relative to it. Set before any thread exists.
         unsafe { std::env::set_var("MW_HOME", home) };
     }
-    let fixtures = fixtures_dir();
+    let fixtures = fixtures_dir()?;
     let dirs = layout::ticket_dirs(TICKET);
     let shown = |path: &Path| layout::display_path(path);
 
@@ -263,4 +336,20 @@ pub fn run(args: Args) -> anyhow::Result<()> {
     report::build_html_report(TICKET, &dirs, &run_timestamp, None, Some(&expected), Some(&label))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn embedded_fixtures_unpack_to_a_usable_dataset() {
+        let dir = unpack_embedded_fixtures().unwrap();
+        assert!(dir.join("NET-DEMO/expectations.yml").is_file());
+        assert!(dir.join("devices.example.yml").is_file());
+        let jobs = demo_jobs_in(&dir).unwrap();
+        assert_eq!(jobs.len(), DEVICES.len());
+        // Unpacking again is a no-op on files that already exist.
+        assert_eq!(unpack_embedded_fixtures().unwrap(), dir);
+    }
 }

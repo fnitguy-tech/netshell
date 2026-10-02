@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: fnitguy-tech.netshell
+PackageVersion: "{{VERSION}}"
+InstallerType: portable
+Commands:
+  - netshell
+Installers:
+  - Architecture: x64
+    InstallerUrl: "{{REPO}}/releases/download/v{{VERSION}}/netshell-windows-x86_64.exe"
+    InstallerSha256: "{{SHA256_NETSHELL}}"
+ManifestType: installer
+ManifestVersion: 1.6.0

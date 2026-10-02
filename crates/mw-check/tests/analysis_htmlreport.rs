@@ -4,11 +4,11 @@
 
 use std::collections::BTreeMap;
 
-use mw::analysis::bgp::{bgp_neighbor_findings, parse_bgp_summary};
-use mw::analysis::normalize::clean_line_for_compare;
-use mw::analysis::rawdiff::classify_raw_diff_commands;
-use mw::analysis::{Classification, Impact};
-use mw::capture::Sections;
+use mw_check::analysis::bgp::{bgp_neighbor_findings, parse_bgp_summary};
+use mw_check::analysis::normalize::clean_line_for_compare;
+use mw_check::analysis::rawdiff::classify_raw_diff_commands;
+use mw_check::analysis::{Classification, Impact};
+use mw_check::capture::Sections;
 
 const BGP_ESTAB: &str = "SPINE1 203.0.113.1 4 65001 12345 12340 0 0 5d02h Estab 100 98";
 const BGP_IDLE: &str = "SPINE1 203.0.113.1 4 65001 12345 12340 0 0 5d02h Idle(Admin)";
@@ -178,7 +178,7 @@ fn activation_is_stable_and_other_state_changes_attention() {
 
 #[test]
 fn classify_raw_diff_commands_counts_by_category() {
-    let diffs: BTreeMap<String, Vec<mw::analysis::DiffLine>> = [
+    let diffs: BTreeMap<String, Vec<mw_check::analysis::DiffLine>> = [
         "show running-config",
         "show ip bgp summary",
         "show interfaces status",

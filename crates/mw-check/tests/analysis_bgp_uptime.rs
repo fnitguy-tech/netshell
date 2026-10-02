@@ -8,9 +8,9 @@
 //! that a reset is only ever flagged when the post value is
 //! unambiguously smaller.
 
-use mw::analysis::bgp::{bgp_neighbor_findings, parse_bgp_summary, parse_panos_bgp_peers, parse_uptime};
-use mw::analysis::{Classification, Field, Impact};
-use mw::capture::Sections;
+use mw_check::analysis::bgp::{bgp_neighbor_findings, parse_bgp_summary, parse_panos_bgp_peers, parse_uptime};
+use mw_check::analysis::{Classification, Field, Impact};
+use mw_check::capture::Sections;
 
 fn row(updown: &str) -> String {
     format!("  ISP-B  198.51.100.9  4 64497  213  201  0  0  {updown}  Estab  815  815")

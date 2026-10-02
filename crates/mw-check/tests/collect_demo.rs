@@ -6,10 +6,10 @@ use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use mw::capture::{HEADER, parse_sections};
-use mw::collect::{Connector, run_collection};
-use mw::commands::demo::{DEVICES, ReplayConnector, demo_jobs_in, phase_folder, stamp};
-use mw::inventory::{DeviceSpec, Job};
+use mw_check::capture::{HEADER, parse_sections};
+use mw_check::collect::{Connector, run_collection};
+use mw_check::commands::demo::{DEVICES, ReplayConnector, demo_jobs_in, phase_folder, stamp};
+use mw_check::inventory::{DeviceSpec, Job};
 use regex::Regex;
 
 fn fixtures() -> PathBuf {
@@ -177,7 +177,7 @@ fn unreachable_device_gets_a_failed_marker() {
 /// A session that fails one command but not the connection.
 struct FlakySession;
 
-impl mw::collect::Session for FlakySession {
+impl mw_check::collect::Session for FlakySession {
     fn hostname(&mut self) -> anyhow::Result<String> {
         Ok("FLAKY-1".to_string())
     }
@@ -197,7 +197,7 @@ impl mw::collect::Session for FlakySession {
 struct FlakyConnector;
 
 impl Connector for FlakyConnector {
-    fn connect(&self, _device: &DeviceSpec) -> anyhow::Result<Box<dyn mw::collect::Session>> {
+    fn connect(&self, _device: &DeviceSpec) -> anyhow::Result<Box<dyn mw_check::collect::Session>> {
         Ok(Box::new(FlakySession))
     }
 }

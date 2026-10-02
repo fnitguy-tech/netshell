@@ -1,0 +1,21 @@
+{
+    "version": "{{VERSION}}",
+    "description": "Maintenance window check for network devices: capture state before and after a change, report what changed",
+    "homepage": "{{REPO}}",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "{{REPO}}/releases/download/v{{VERSION}}/mw-windows-x86_64.exe#/mw.exe",
+            "hash": "{{SHA256_MW}}"
+        }
+    },
+    "bin": "mw.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "{{REPO}}/releases/download/v$version/mw-windows-x86_64.exe#/mw.exe"
+            }
+        }
+    }
+}

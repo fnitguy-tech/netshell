@@ -9,11 +9,33 @@ Network maintenance tooling in Rust, as two crates in one workspace:
 | crate | what it is |
 |-------|------------|
 | [`netshell`](crates/netshell/) | A netmiko-style SSH shell driver: open a shell on Arista EOS, Cisco IOS/IOS-XE/NX-OS/IOS-XR, Juniper Junos or Palo Alto PAN-OS, turn paging off, run `show` commands, get clean output back. Library plus a small CLI. |
-| [`mw`](crates/mw/) | Maintenance window check: capture device state before a maintenance window and after, diff the two with expected churn stripped, and turn the difference into an interpreted HTML report. A port of the Python [prepost-check](https://github.com/fnitguy-tech/prepost-check), built on `netshell`. |
+| [`mw-check`](crates/mw-check/) | Maintenance window check: capture device state before a maintenance window and after, diff the two with expected churn stripped, and turn the difference into an interpreted HTML report. A port of the Python [prepost-check](https://github.com/fnitguy-tech/prepost-check), built on `netshell`. |
 
-Both ship as single static binaries for Linux, Windows and macOS on
-every [release](https://github.com/fnitguy-tech/netshell/releases): no
-Python, no venv, nothing to install.
+## Install
+
+```text
+winget install fnitguy-tech.mw                       # Windows
+scoop bucket add fnitguy https://github.com/fnitguy-tech/netshell
+scoop install mw                                     # Windows, Scoop
+cargo install mw-check                               # any OS with Rust; the binary is mw
+cargo install netshell
+```
+
+Or take the binaries straight from a
+[release](https://github.com/fnitguy-tech/netshell/releases): single
+static files for Linux, Windows and macOS, no Python, no venv. Each
+release lists SHA-256 checksums, and every binary carries a GitHub
+build provenance attestation, so a download can be proven to have
+been built by this repository's workflow from a given commit:
+
+```text
+gh attestation verify mw-windows-x86_64.exe --owner fnitguy-tech
+```
+
+The binaries are not code-signed yet, so a direct download still gets
+the SmartScreen prompt on first run on Windows; winget and Scoop
+installs do not. See [packaging/](packaging/) for how the channels
+are fed.
 
 ```text
 cargo build --release --workspace

@@ -1069,7 +1069,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mw"
+name = "mw-check"
 version = "0.1.0"
 dependencies = [
  "anyhow",

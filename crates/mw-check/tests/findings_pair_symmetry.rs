@@ -7,10 +7,10 @@
 //! route-maps entry for entry, and the parts of PAN-OS HA state that
 //! do not depend on which member is active.
 
-use mw::analysis::pairs::{infer_pairs, pair_findings, parse_ha_state, parse_route_maps, resolve_pairs};
-use mw::analysis::prefix_list::prefix_list_findings;
-use mw::analysis::{Classification, DiffLine, Field, Impact};
-use mw::capture::{Sections, parse_sections_str};
+use mw_check::analysis::pairs::{infer_pairs, pair_findings, parse_ha_state, parse_route_maps, resolve_pairs};
+use mw_check::analysis::prefix_list::prefix_list_findings;
+use mw_check::analysis::{Classification, DiffLine, Field, Impact};
+use mw_check::capture::{Sections, parse_sections_str};
 
 const PREFIX_LIST: [&str; 4] = [
     "ip prefix-list ISP-OUT",
@@ -64,7 +64,7 @@ fn pair(a: &str, b: &str) -> (String, String) {
     (a.to_string(), b.to_string())
 }
 
-fn titles(findings: &[mw::analysis::Finding]) -> Vec<&str> {
+fn titles(findings: &[mw_check::analysis::Finding]) -> Vec<&str> {
     findings.iter().map(|finding| finding.title.as_str()).collect()
 }
 

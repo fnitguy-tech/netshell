@@ -7,8 +7,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use mw::layout::ticket_dirs_under;
-use mw::textcompare::{compare_folders, parse_sections, write_compare_report};
+use mw_check::layout::ticket_dirs_under;
+use mw_check::textcompare::{compare_folders, parse_sections, write_compare_report};
 
 fn fixture(part: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

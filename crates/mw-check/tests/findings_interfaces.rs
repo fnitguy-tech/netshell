@@ -7,12 +7,12 @@
 //! the capture cannot say is up or down is never rated.
 
 use indexmap::IndexMap;
-use mw::analysis::interfaces::{
+use mw_check::analysis::interfaces::{
     InterfaceState, interface_findings, parse_config_addresses, parse_interface_all, parse_interfaces_status,
     parse_ip_interface_brief,
 };
-use mw::analysis::{Classification, Field, Impact};
-use mw::capture::{Sections, parse_sections_str};
+use mw_check::analysis::{Classification, Field, Impact};
+use mw_check::capture::{Sections, parse_sections_str};
 
 fn eos_brief(status: &str) -> String {
     format!(

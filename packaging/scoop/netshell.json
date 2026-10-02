@@ -1,0 +1,21 @@
+{
+    "version": "{{VERSION}}",
+    "description": "Run show commands on network devices over SSH (Arista, Cisco, Juniper, PAN-OS)",
+    "homepage": "{{REPO}}",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "{{REPO}}/releases/download/v{{VERSION}}/netshell-windows-x86_64.exe#/netshell.exe",
+            "hash": "{{SHA256_NETSHELL}}"
+        }
+    },
+    "bin": "netshell.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "{{REPO}}/releases/download/v$version/netshell-windows-x86_64.exe#/netshell.exe"
+            }
+        }
+    }
+}

@@ -7,9 +7,9 @@
 //! Attention findings, not as one grey line in the raw config diff.
 
 use indexmap::IndexMap;
-use mw::analysis::prefix_list::{parse_prefix_lists, prefix_list_findings};
-use mw::analysis::{Classification, DiffLine, Field, Impact};
-use mw::capture::{Sections, parse_sections_str};
+use mw_check::analysis::prefix_list::{parse_prefix_lists, prefix_list_findings};
+use mw_check::analysis::{Classification, DiffLine, Field, Impact};
+use mw_check::capture::{Sections, parse_sections_str};
 
 const SHOW_PRE: [&str; 8] = [
     "ip prefix-list ISP-OUT",

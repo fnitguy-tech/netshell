@@ -5,13 +5,13 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use mw::analysis::{
+use mw_check::analysis::{
     Analysis, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, ExpectationTotals, Field,
     Finding, Impact, ImpactCounts,
 };
-use mw::capture::safe_id;
-use mw::layout::ticket_dirs_under;
-use mw::report::{
+use mw_check::capture::safe_id;
+use mw_check::layout::ticket_dirs_under;
+use mw_check::report::{
     CHART_JS_SCRIPT_TAG, build_html_report, escape, render_diff_line, render_finding, render_html, render_html_at,
 };
 

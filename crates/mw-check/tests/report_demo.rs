@@ -8,11 +8,11 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use mw::analysis::{
+use mw_check::analysis::{
     Analysis, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, ExpectationTotals, Field,
     Finding, Impact, ImpactCounts,
 };
-use mw::report::render_html_at;
+use mw_check::report::render_html_at;
 
 const FIXTURE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),

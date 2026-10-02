@@ -14,7 +14,7 @@
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use mw::commands::{compare, demo, postcheck, precheck};
+use mw_check::commands::{compare, demo, postcheck, precheck};
 
 #[derive(Parser)]
 #[command(

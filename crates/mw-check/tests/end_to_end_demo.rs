@@ -3,9 +3,9 @@
 
 use std::path::Path;
 
-use mw::analysis::analyze;
-use mw::expectations::load_expectations;
-use mw::report::render_html_at;
+use mw_check::analysis::analyze;
+use mw_check::expectations::load_expectations;
+use mw_check::report::render_html_at;
 
 fn fixtures() -> &'static Path {
     Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/NET-DEMO"))

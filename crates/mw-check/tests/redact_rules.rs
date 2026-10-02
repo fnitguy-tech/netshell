@@ -4,9 +4,9 @@
 use std::fs;
 use std::path::Path;
 
-use mw::collect::{Connector, Session, run_collection};
-use mw::inventory::{DeviceSpec, Job};
-use mw::redact::{REDACTED, scrub};
+use mw_check::collect::{Connector, Session, run_collection};
+use mw_check::inventory::{DeviceSpec, Job};
+use mw_check::redact::{REDACTED, scrub};
 
 const EOS_CONFIG: &str = "\
 hostname SITE-A-SW-1
@@ -194,7 +194,7 @@ struct FakeSession;
 
 impl Session for FakeSession {
     fn hostname(&mut self) -> anyhow::Result<String> {
-        mw::collect::get_hostname(self, "arista_eos", "192.0.2.1")
+        mw_check::collect::get_hostname(self, "arista_eos", "192.0.2.1")
     }
 
     fn send_command(&mut self, command: &str) -> anyhow::Result<String> {

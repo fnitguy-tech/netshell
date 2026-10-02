@@ -1,10 +1,13 @@
 [package]
-name = "mw"
+name = "mw-check"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Pre/post change validation for network maintenance windows: capture device state before and after, diff it, and turn the difference into an interpreted report"
+description = "Maintenance window check: capture network device state before and after a change, diff it with expected churn stripped, and report what changed"
+readme = "README.md"
+keywords = ["network", "maintenance", "arista", "cisco", "panos"]
+categories = ["command-line-utilities", "network-programming"]
 
 [dependencies]
 anyhow = "1.0"
