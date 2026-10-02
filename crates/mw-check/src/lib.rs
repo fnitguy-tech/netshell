@@ -17,7 +17,7 @@
 //! | `textcompare`   | normalization rules + the quick .txt diff report            |
 //! | `difflib`       | port of Python's ndiff, so every diff orders lines the same |
 //! | `analysis`      | parsers, findings, pair symmetry, impact scoring            |
-//! | `expectations`  | expected BGP prefix deltas for one change                   |
+//! | `notes`         | your write-up of the window, rendered into the report       |
 //! | `report`        | the self-contained HTML report                              |
 //! | `layout`        | `reports/<TICKET>/` directory conventions                   |
 //! | `vpn`           | IPsec/IKE/LSVPN churn rule shared by both compare views     |

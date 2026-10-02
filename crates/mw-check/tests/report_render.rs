@@ -760,7 +760,7 @@ fn chart_canvases_and_footer() {
 }
 
 // Ported from tests/test_htmlreport.py, test_prefix_lists.py,
-// test_bgp_uptime.py, test_interfaces.py and test_expectations.py:
+// test_bgp_uptime.py and test_interfaces.py:
 // the same assertions on the rendered page, from the findings the
 // Python analysis produced for those captures.
 

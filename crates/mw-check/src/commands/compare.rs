@@ -5,11 +5,11 @@
 //! `mw before` and `mw after`. The inventory is
 //! optional here and is read only for its `pairs:` list; pairs whose
 //! hostnames differ only by a trailing number (SW-1 / SW-2) are
-//! inferred from the captures without it. The expectations file
-//! (default `reports/<TICKET>/expectations.yml` when it exists) states
-//! the BGP prefix deltas the change was meant to cause, so the report
-//! can say "as planned" or "unexplained" instead of hedging on every
-//! delta.
+//! inferred from the captures without it.
+//!
+//! The notes file (default `reports/<TICKET>/notes.md`) is your own
+//! account of the window. Whatever you write there is rendered above the
+//! machine findings, so the ticket carries both.
 
 use std::path::{Path, PathBuf};
 
