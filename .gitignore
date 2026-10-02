@@ -1,0 +1,10 @@
+inventory/*.yml
+!inventory/*.example.yml
+
+reports/*
+!reports/.gitkeep
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

@@ -1,0 +1,5 @@
+keys:
+  default:
+    ssh_private_key_path: "~/.ssh/id_ed25519_example"
+    # Never commit the actual private key or the filled-in ssh_keys.yml
+    # (both gitignored) - only this example template is tracked.

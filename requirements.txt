@@ -1,0 +1,5 @@
+pyyaml
+rich
+paramiko
+hvac
+pytest

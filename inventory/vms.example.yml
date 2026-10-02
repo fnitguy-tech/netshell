@@ -1,0 +1,9 @@
+vms:
+  example-vm-01:
+    admin_username: admin
+    network:
+      ip_address: "192.0.2.99"
+    # Add whatever else your roles' run() functions read off `target` -
+    # a hypervisor name if this VM gets newly provisioned, domain/realm
+    # info, resource sizing, etc. Keep it flat and simple; nest only
+    # when a role genuinely needs a sub-structure (see network: above).
