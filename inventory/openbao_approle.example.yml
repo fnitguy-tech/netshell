@@ -1,6 +1,0 @@
-## Copy to openbao_approle.yml (gitignored) and fill in. The role_id is
-## a stable, non-secret identifier by OpenBao's own design - the
-## matching secret_id is env-var-only (OPENBAO_SECRET_ID), deliberately
-## never read from a file. See modules/secrets.py's docstring for the
-## full configuration precedence (OPENBAO_ADDR / OPENBAO_CACERT / ...).
-openbao_role_id: "replace-with-this-projects-approle-role-id"

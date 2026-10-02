@@ -1,8 +1,0 @@
-hypervisors:
-  hv-example-01:
-    network:
-      ip_address: "192.0.2.10"
-    admin_username: admin
-    # Only needed if this project provisions new VMs (via the shared
-    # vm_provision/os_provision_rocky_vm roles) rather than targeting
-    # existing infrastructure. Delete this file entirely if unused.
