@@ -42,7 +42,10 @@ platforms:
       - show ip arp
       - show interfaces status
       - show interfaces trunk
-      - show port-channel summary
+      # EOS has no "show port-channel summary" - that is the Cisco
+      # spelling, and EOS answers it with "% Invalid input". "dense"
+      # is the compact one-line-per-channel table.
+      - show port-channel dense
       - show interfaces transceiver
       - show lldp neighbors
       - show ip ospf neighbor

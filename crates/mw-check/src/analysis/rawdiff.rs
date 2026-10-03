@@ -68,6 +68,9 @@ const INTERFACE_COMMANDS: &[&str] = &[
     "show interfaces status",
     "show interfaces trunk",
     "show port-channel summary",
+    // EOS has no "summary" - that is the Cisco spelling. Both are
+    // listed so either vendor's capture lands in this category.
+    "show port-channel dense",
     "show interfaces counters errors",
     "show interfaces description",
 ];
