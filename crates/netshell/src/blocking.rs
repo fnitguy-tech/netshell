@@ -9,20 +9,24 @@ use std::time::Duration;
 
 use tokio::runtime::{Builder, Runtime};
 
-use crate::{ConnectOptions, Result};
+use crate::{ConnectOptions, Error, Result};
 
 /// Blocking counterpart of [`crate::Device`].
 pub struct Device {
     runtime: Runtime,
+    // `None` only once `disconnect` or `drop` has taken the session.
     inner: Option<crate::Device>,
 }
 
 impl Device {
     pub fn connect(options: ConnectOptions) -> Result<Device> {
+        // Building a runtime can fail, for example when the process is
+        // out of file descriptors. That's an error to report, not a
+        // reason to take the whole collector down.
         let runtime = Builder::new_current_thread()
             .enable_all()
             .build()
-            .expect("tokio runtime");
+            .map_err(Error::Runtime)?;
         let inner = runtime.block_on(crate::Device::connect(options))?;
         Ok(Device {
             runtime,
@@ -30,34 +34,51 @@ impl Device {
         })
     }
 
+    fn session(&mut self) -> Result<(&Runtime, &mut crate::Device)> {
+        match self.inner.as_mut() {
+            Some(inner) => Ok((&self.runtime, inner)),
+            None => Err(Error::Disconnected),
+        }
+    }
+
+    /// The prompt minus its terminator and mode suffix, e.g. `SW-1`.
     pub fn base_prompt(&self) -> &str {
-        self.inner.as_ref().expect("device already disconnected").base_prompt()
+        self.inner.as_ref().map_or("", crate::Device::base_prompt)
+    }
+
+    /// See [`crate::Device::warnings`].
+    pub fn warnings(&self) -> &[String] {
+        self.inner.as_ref().map_or(&[], crate::Device::warnings)
+    }
+
+    /// See [`crate::Device::is_poisoned`].
+    pub fn is_poisoned(&self) -> bool {
+        self.inner.as_ref().is_some_and(crate::Device::is_poisoned)
     }
 
     pub fn find_prompt(&mut self) -> Result<String> {
-        let inner = self.inner.as_mut().expect("device already disconnected");
-        self.runtime.block_on(inner.find_prompt())
+        let (runtime, inner) = self.session()?;
+        runtime.block_on(inner.find_prompt())
     }
 
     pub fn send_command(&mut self, command: &str) -> Result<String> {
-        let inner = self.inner.as_mut().expect("device already disconnected");
-        self.runtime.block_on(inner.send_command(command))
+        let (runtime, inner) = self.session()?;
+        runtime.block_on(inner.send_command(command))
     }
 
     pub fn send_command_timeout(&mut self, command: &str, timeout: Duration) -> Result<String> {
-        let inner = self.inner.as_mut().expect("device already disconnected");
-        self.runtime.block_on(inner.send_command_timeout(command, timeout))
+        let (runtime, inner) = self.session()?;
+        runtime.block_on(inner.send_command_timeout(command, timeout))
     }
 
     pub fn send_command_expect(&mut self, command: &str, pattern: &str, timeout: Duration) -> Result<String> {
-        let inner = self.inner.as_mut().expect("device already disconnected");
-        self.runtime
-            .block_on(inner.send_command_expect(command, pattern, timeout))
+        let (runtime, inner) = self.session()?;
+        runtime.block_on(inner.send_command_expect(command, pattern, timeout))
     }
 
     pub fn write(&mut self, text: &str) -> Result<()> {
-        let inner = self.inner.as_mut().expect("device already disconnected");
-        self.runtime.block_on(inner.write(text))
+        let (runtime, inner) = self.session()?;
+        runtime.block_on(inner.write(text))
     }
 
     pub fn disconnect(mut self) -> Result<()> {

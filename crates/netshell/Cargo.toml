@@ -2,29 +2,43 @@
 name = "netshell"
 version = "0.1.1"
 edition = "2024"
+# russh 0.63 needs Rust 1.89, so that's the real floor for this crate.
+rust-version = "1.89"
 description = "netmiko-style SSH shell driver for network devices: Arista EOS, Cisco IOS/NX-OS/IOS-XR, Juniper Junos, Palo Alto PAN-OS"
 license = "MIT"
 repository = "https://github.com/fnitguy-tech/netshell"
 keywords = ["ssh", "network", "netmiko", "arista", "cisco"]
 categories = ["network-programming", "command-line-utilities"]
 
+# `cli` builds the `netshell` binary. It's on by default so
+# `cargo install netshell` just works. A library user who doesn't want
+# clap, rpassword, or the Windows icon step turns it off:
+#   netshell = { version = "0.1", default-features = false }
+[features]
+default = ["cli"]
+cli = ["dep:clap", "dep:rpassword", "dep:winresource"]
+
 [dependencies]
-clap = { version = "4.6", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"], optional = true }
 regex = "1.13"
-rpassword = "7.5"
+rpassword = { version = "7.5", optional = true }
 # ring instead of the default aws-lc-rs so the crate builds with nothing
 # but a C compiler on every platform (no cmake/nasm on Windows); rsa for
 # the RSA host keys most network devices still present.
 russh = { version = "0.63", default-features = false, features = ["ring", "flate2", "rsa", "des"] }
 thiserror = "2.0"
 tokio = { version = "1.53", features = ["rt", "rt-multi-thread", "net", "time", "io-util", "macros", "sync"] }
+# Passwords and enable secrets are wiped from memory when dropped.
+zeroize = "1.8"
 
 [dev-dependencies]
 rand = { version = "0.10", features = ["thread_rng"] }
+tempfile = "3.23"
 
 [[bin]]
 name = "netshell"
 path = "src/bin/netshell.rs"
+required-features = ["cli"]
 
 [target."cfg(windows)".build-dependencies]
-winresource = "0.1.31"
+winresource = { version = "0.1.31", optional = true }

@@ -1098,9 +1098,11 @@ dependencies = [
  "regex",
  "rpassword",
  "russh",
+ "tempfile",
  "thiserror",
  "tokio",
  "winresource",
+ "zeroize",
 ]
 
 [[package]]

@@ -34,6 +34,23 @@
 //! The API is async (tokio). [`blocking::Device`] wraps it for callers
 //! that drive devices from plain threads.
 //!
+//! # Host keys
+//!
+//! Host keys are checked by default, the way `ssh` does it. The first
+//! connect to a device writes its key to a known-hosts file. Every
+//! later connect compares, and a different key is refused with
+//! [`Error::HostKeyChanged`]. See [`HostKeyPolicy`] for the other
+//! choices and [`default_known_hosts_path`] for where the file lives.
+//!
+//! # Cargo features
+//!
+//! `cli` (on by default) builds the `netshell` binary and pulls in
+//! clap and rpassword. A library user can leave it out:
+//!
+//! ```toml
+//! netshell = { version = "0.1", default-features = false }
+//! ```
+//!
 //! # Status
 //!
 //! The driver logic is exercised in CI against a fake SSH server that
@@ -46,11 +63,17 @@
 pub mod blocking;
 mod device;
 mod error;
+mod known_hosts;
 mod platform;
+mod secret;
 
-pub use device::{ConnectOptions, Device, HostKeyPolicy, clean_output, preferred_algorithms, strip_ansi};
+pub use device::{
+    ConnectOptions, Device, HostKeyPolicy, clean_output, legacy_algorithms, preferred_algorithms, strip_ansi,
+};
 pub use error::Error;
-pub use platform::{Platform, ShellEscape};
+pub use known_hosts::{KNOWN_HOSTS_ENV, default_known_hosts_path};
+pub use platform::{Enable, Platform, Preparation, ShellEscape};
+pub use secret::Secret;
 
 /// Convenience alias used throughout the crate.
 pub type Result<T> = std::result::Result<T, Error>;

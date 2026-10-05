@@ -267,10 +267,24 @@ alone as a library or a CLI:
 netshell --platform arista_eos --host 192.0.2.11 --username admin "show version" "show ip bgp summary"
 ```
 
-It carries the full algorithm set older devices need - NIST curves,
-SHA-1 group exchange, CBC ciphers - with the modern ones offered first.
-It tries password and keyboard-interactive auth, escapes a Junos root
-shell with `cli`, and can pin a host key by SHA-256 fingerprint.
+It checks host keys the way `ssh` does. The first connect to a device
+records its key. If the key ever changes, netshell refuses to connect
+and tells you which line of the known-hosts file to remove. This is new
+in the next release: before, any host key was accepted.
+
+A few flags cover the cases that come up in a real fleet:
+
+| Flag | When you need it |
+|---|---|
+| `--accept-new-host-key` | You replaced or re-imaged a device, so its key changed. |
+| `--legacy-algorithms` | An old device offers only SHA-1 or CBC algorithms, such as `3des-cbc`. |
+| `--enable` | A Cisco IOS, IOS-XE, or Arista EOS login lands at `RTR-1>` and you need `RTR-1#`. |
+
+It exits 0 when every command ran, 1 when it couldn't connect, and 3
+when a command failed, so a script can tell those apart. The
+[netshell README](crates/netshell/README.md) has the known-hosts file
+format, the exact errors, and the `cli` cargo feature for library
+users.
 
 ## Repository layout
 
