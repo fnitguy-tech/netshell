@@ -53,10 +53,12 @@ suffix, Junos's `{master:0}` and `{primary:node0}` status lines, a
 banner line that ends in `#`, a prompt split across two packets, and
 output that only returns to the prompt once paging is off.
 
-It has **not yet been validated against real hardware.** Prompt shapes,
-login banners, and timing are exactly where shell drivers break.
+It has run against real **Arista EOS** and **Palo Alto PAN-OS** devices,
+from both Windows and Linux. The Cisco and Juniper platforms have only
+met the fake server so far.
 
-So run it against one box of each type before you trust it in a
+Prompt shapes, login banners, and timing are exactly where shell drivers
+break. So run it against one box of each type before you trust it in a
 maintenance window. If a prompt isn't recognised, open an issue with the
 raw output.
 

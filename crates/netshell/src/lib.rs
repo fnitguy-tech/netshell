@@ -55,10 +55,11 @@
 //!
 //! The driver logic is exercised in CI against a fake SSH server that
 //! plays each platform's prompt and paging behaviour (see `tests/`).
-//! It has **not yet been validated against real hardware**. Prompt
-//! shapes, banners and timing are where shell drivers break, so run it
-//! against one box of each type you care about before trusting it in
-//! a maintenance window.
+//! It has run against real Arista EOS and Palo Alto PAN-OS devices,
+//! from both Windows and Linux. The Cisco and Juniper platforms have
+//! only met the fake server so far. Prompt shapes, banners, and timing
+//! are where shell drivers break, so run it against one box of each
+//! type you care about before trusting it in a maintenance window.
 
 pub mod blocking;
 mod device;
