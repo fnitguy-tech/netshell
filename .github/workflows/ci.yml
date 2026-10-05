@@ -1,12 +1,21 @@
 # Format, lint and test both crates on the three desktop platforms. The
 # netshell tests talk to an in-process fake SSH server and the mw
 # tests work from bundled captures, so no device access is needed.
+#
+# Every third-party action is pinned to a full commit SHA, with the
+# version it stands for in the trailing comment. A tag like `v4` can be
+# moved to different code after the fact; a SHA can't. To update one:
+#   gh api repos/<owner>/<repo>/commits/<tag> --jq .sha
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+
+# Nothing here needs to write to the repository.
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,11 +28,41 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      # Pinned by SHA, the action can't read "stable" from its own ref
+      # any more, so the toolchain is named here.
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: stable
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test --workspace
+      # --locked: build exactly what Cargo.lock says, and fail if the
+      # lock file is out of date, instead of quietly resolving anew.
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked --workspace
+      # The library must also build without the CLI's dependencies.
+      - run: cargo clippy --locked -p netshell --no-default-features --all-targets -- -D warnings
+
+  # Fails when a dependency in Cargo.lock has a published security
+  # advisory (https://rustsec.org).
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: stable
+      - run: cargo install cargo-audit --locked
+      # One advisory is ignored, by name, so that a new one still fails
+      # the job. RUSTSEC-2023-0071 (the "Marvin attack") is a timing
+      # leak in the rsa crate's private-key operations, and no fixed
+      # version exists yet. netshell never holds an RSA private key:
+      # it logs in with a password and only verifies a device's RSA
+      # host-key signature, which is a public-key operation. Remove the
+      # flag once russh moves to a fixed rsa release.
+      - run: cargo audit --ignore RUSTSEC-2023-0071

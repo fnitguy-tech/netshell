@@ -6,42 +6,102 @@
 #     (gh attestation verify <file> --owner fnitguy-tech)
 #   - completed winget manifests, ready to submit to microsoft/winget-pkgs
 # and main gets the same manifests under packaging/winget/releases/ and
-# the Scoop bucket in bucket/ updated with the new version and hashes. Code signing is deliberately not here yet.
+# the Scoop bucket in bucket/ updated with the new version and hashes.
+# Code signing is deliberately not here yet.
+#
+# Order matters at the end. The GitHub release is created first and the
+# Scoop bucket is pushed second. The bucket points at the release's
+# download URL, so pushing it first would hand Scoop users a 404 if the
+# release step then failed.
+#
+# Every third-party action is pinned to a full commit SHA, with the
+# version it stands for in the trailing comment. To update one:
+#   gh api repos/<owner>/<repo>/commits/<tag> --jq .sha
 name: release
 
 on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
-  id-token: write
-  attestations: write
+# No job gets anything by default. Each one asks for what it needs.
+permissions: {}
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
+  # Tag v0.2.0 must mean netshell 0.2.0 and mw-check 0.2.0. Without
+  # this check, a tag pushed before the version bump would publish
+  # binaries that report the old version.
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The tag matches both crate versions
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          metadata=$(cargo metadata --no-deps --format-version 1 --locked)
+          for crate in netshell mw-check; do
+            version=$(jq -r --arg name "$crate" '.packages[] | select(.name == $name) | .version' <<<"$metadata")
+            if [ "$version" != "$tag" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match $crate $version; bump the version in crates/$crate/Cargo.toml or retag"
+              exit 1
+            fi
+            echo "$crate $version matches $GITHUB_REF_NAME"
+          done
+
   build:
+    needs: verify
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
+          # musl, not gnu: the binary is fully static, so it runs on
+          # RHEL and Rocky 9 (glibc 2.34) even though the runner's
+          # glibc is newer.
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
             suffix: linux-x86_64
             ext: ""
+            rustflags: ""
+          # +crt-static: link the C runtime in, so the .exe doesn't
+          # need the Visual C++ redistributable installed.
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             suffix: windows-x86_64
             ext: ".exe"
+            rustflags: "-C target-feature=+crt-static"
           - os: macos-latest
             target: aarch64-apple-darwin
             suffix: macos-arm64
             ext: ""
+            rustflags: ""
     runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      # Pinned by SHA, the action can't read "stable" from its own ref
+      # any more, so the toolchain is named here.
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          toolchain: stable
           targets: ${{ matrix.target }}
-      - run: cargo build --release --workspace --target ${{ matrix.target }}
+      # ring compiles some C, and for the musl target that needs
+      # musl-gcc.
+      - name: Install the musl C compiler
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      # --locked: ship exactly the dependencies in Cargo.lock.
+      - run: cargo test --locked --workspace --target ${{ matrix.target }}
+      - run: cargo build --locked --release --workspace --target ${{ matrix.target }}
       - name: Collect binaries
         shell: bash
         run: |
@@ -49,7 +109,19 @@ jobs:
           for bin in mw netshell; do
             cp "target/${{ matrix.target }}/release/$bin${{ matrix.ext }}" "dist/$bin-${{ matrix.suffix }}${{ matrix.ext }}"
           done
-      - uses: actions/upload-artifact@v4
+      - name: The Linux binaries are static
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          for bin in dist/*; do
+            # ldd lists "name => path" for each shared library a
+            # binary needs. A static binary has none.
+            if ldd "$bin" 2>&1 | grep -q '=>'; then
+              echo "::error::$bin links shared libraries, so it is not static"
+              ldd "$bin"
+              exit 1
+            fi
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: dist-${{ matrix.suffix }}
           path: dist/*
@@ -58,11 +130,17 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    # The only job that can write: contents for the release and the
+    # push to main, id-token and attestations for build provenance.
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: dist
           merge-multiple: true
@@ -72,24 +150,13 @@ jobs:
           sha256sum * > SHA256SUMS
           cat SHA256SUMS
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-path: |
             dist/mw-*
             dist/netshell-*
       - name: Render winget manifests and the Scoop bucket
         run: packaging/render.sh "${GITHUB_REF_NAME#v}" dist
-      - name: Keep the winget manifests and the Scoop bucket on main
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          rm -rf "packaging/winget/releases/$version"
-          mkdir -p packaging/winget/releases
-          cp -r packaging/out/winget "packaging/winget/releases/$version"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bucket packaging/winget/releases
-          git diff --cached --quiet || git commit -m "packaging: ${GITHUB_REF_NAME} winget manifests and Scoop bucket"
-          git push origin HEAD:main
       - name: Release notes
         run: |
           {
@@ -114,9 +181,25 @@ jobs:
             cat dist/SHA256SUMS
             echo '```'
           } > notes.md
-      - uses: softprops/action-gh-release@v2
+      - name: Create the GitHub release
+        id: release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           body_path: notes.md
           files: |
             dist/*
             packaging/out/winget/**/*.yaml
+      # Only once the release exists. If the step above failed, this
+      # one is skipped and main keeps pointing at the last good release.
+      - name: Keep the winget manifests and the Scoop bucket on main
+        if: steps.release.outcome == 'success'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          rm -rf "packaging/winget/releases/$version"
+          mkdir -p packaging/winget/releases
+          cp -r packaging/out/winget "packaging/winget/releases/$version"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bucket packaging/winget/releases
+          git diff --cached --quiet || git commit -m "packaging: ${GITHUB_REF_NAME} winget manifests and Scoop bucket"
+          git push origin HEAD:main
