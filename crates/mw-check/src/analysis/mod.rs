@@ -8,7 +8,9 @@
 //!    diff of every command;
 //! 2. pair symmetry findings across each redundant pair, attributed to
 //!    both members but counted once;
-//! 3. counts, weighted impact score, totals and ordering.
+//! 3. counts, weighted impact score, totals and ordering. A device
+//!    that failed, went missing, or is new has nothing to diff, so it
+//!    joins here as one Action Required finding.
 
 pub mod bgp;
 pub mod config;
@@ -21,10 +23,41 @@ pub mod rawdiff;
 
 use std::path::Path;
 
+use crate::capture::Problem;
+
 pub use finding::{
     Analysis, BgpContext, BgpPeer, Classification, ClassificationCounts, DeviceReport, DiffKind, DiffLine, Field,
     Finding, Impact, ImpactCounts,
 };
+
+/// The category of a failed, missing, or new device's finding.
+pub const DEVICE_CAPTURE_CATEGORY: &str = "Device capture";
+
+/// One failed, missing, or new device as an Action Required finding.
+///
+/// It's the same finding shape every parser produces, so it rolls into
+/// the verdict, the attention list, and the charts through the same
+/// path. The connect error from the FAILED file rides along as detail.
+pub fn device_problem_finding(problem: &Problem) -> Finding {
+    let mut finding = Finding::new(
+        Classification::System,
+        DEVICE_CAPTURE_CATEGORY,
+        Impact::ActionRequired,
+        problem.title.clone(),
+    );
+
+    finding.subject.push(problem.name.clone());
+    if !problem.address.is_empty() && problem.address != problem.name {
+        finding.subject.push(problem.address.clone());
+    }
+
+    finding.fields = vec![Field::new("Capture", problem.before.clone(), problem.after.clone())];
+    finding.summary = problem.summary.clone();
+    finding.evidence = problem.evidence.clone();
+    finding.detail = problem.detail.iter().map(DiffLine::context).collect();
+
+    finding
+}
 
 /// Diff every common device file between the two run folders and roll
 /// up findings and totals.
@@ -36,23 +69,15 @@ pub fn analyze(
     postcheck_folder: &Path,
     pairs: Option<&[(String, String)]>,
 ) -> anyhow::Result<Analysis> {
-    use std::collections::BTreeSet;
-
     use indexmap::IndexMap;
 
     use crate::capture::{self, Sections};
 
-    fn file_names(folder: &Path) -> anyhow::Result<BTreeSet<String>> {
-        let mut names = BTreeSet::new();
-        for entry in std::fs::read_dir(folder)? {
-            names.insert(entry?.file_name().to_string_lossy().into_owned());
-        }
-        Ok(names)
-    }
-
-    let pre_files = file_names(precheck_folder)?;
-    let post_files = file_names(postcheck_folder)?;
-    let common_files: Vec<String> = pre_files.intersection(&post_files).cloned().collect();
+    // common_files are captured in both runs and get the full analysis.
+    // Devices that failed, went missing, or are new come back as
+    // problems and are added in pass 3 as Action Required findings.
+    let (common_files, problems) = capture::device_problems(precheck_folder, postcheck_folder)?;
+    let (warnings, _notes) = capture::baseline_warnings(precheck_folder, postcheck_folder);
 
     let mut total_findings_by_classification = ClassificationCounts::default();
     let mut impact_totals = ImpactCounts::default();
@@ -199,6 +224,37 @@ pub fn analyze(
         });
     }
 
+    // A device with no usable capture on one side. It was kept out of
+    // passes 1 and 2 (there's nothing to diff or to pair), but it has to
+    // count: "we couldn't check it" must never read as "it's fine".
+    let mut problem_findings = Vec::new();
+
+    for problem in &problems {
+        let finding = device_problem_finding(problem);
+        devices_with_findings += 1;
+        total_findings_by_classification.add(finding.classification, 1);
+        impact_totals.add(finding.impact, 1);
+        window_totals.add(finding.impact, 1);
+
+        let hostname = problem.file_name.replace(".txt", "");
+        device_reports.push(DeviceReport {
+            file_name: problem.file_name.clone(),
+            device_id: capture::safe_id(&hostname),
+            hostname,
+            findings: vec![finding.clone()],
+            config_changes: Vec::new(),
+            diffs: std::collections::BTreeMap::new(),
+            raw_categories: ClassificationCounts::default(),
+            findings_count: 1,
+            attention_count: 0,
+            action_count: 1,
+            changed_count: 0,
+            stable_count: 0,
+            impact_score: 10,
+        });
+        problem_findings.push(finding);
+    }
+
     // Highest action count first, then attention, findings, score; a
     // stable sort keeps file order among equals, as Python's does.
     device_reports.sort_by(|a, b| {
@@ -212,6 +268,8 @@ pub fn analyze(
 
     Ok(Analysis {
         common_files,
+        device_problems: problem_findings,
+        warnings,
         device_reports,
         pairs: resolved_pairs,
         pair_findings: all_pair_findings,

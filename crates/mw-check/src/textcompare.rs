@@ -31,7 +31,7 @@ use regex::Regex;
 
 use crate::capture::{self, Sections};
 pub use crate::difflib::ndiff;
-use crate::layout::{TicketDirs, display_path, find_latest_folder};
+use crate::layout::{TicketDirs, display_path_from, find_latest_folder};
 use crate::vpn::{normalize_vpn_line, vpn_commands};
 
 /// Commands captured for evidence but too volatile to ever diff
@@ -268,29 +268,44 @@ pub fn normalize_sections(raw: Sections) -> Sections {
 // ---------------------------------------------------------------------
 
 const RULE_EQUALS: &str = "================================================================================";
-const RULE_DASHES: &str = "--------------------------------------------------------------------------------";
-
-/// Sorted entry names of a run folder (`sorted(os.listdir(folder))`).
-fn list_folder(folder: &Path) -> io::Result<Vec<String>> {
-    let mut names: Vec<String> = fs::read_dir(folder)?
-        .map(|entry| entry.map(|e| e.file_name().to_string_lossy().into_owned()))
-        .collect::<io::Result<_>>()?;
-    names.sort_unstable();
-    Ok(names)
-}
+const RULE_DASHES: &str = capture::SECTION_RULE;
 
 /// The whole text report for one precheck folder against one postcheck
-/// folder: the header, the file summary and one section per common
-/// device with each changed command's `-`/`+` lines.
-pub fn compare_folders(ticket: &str, precheck_folder: &Path, postcheck_folder: &Path) -> anyhow::Result<String> {
-    let pre_files = list_folder(precheck_folder)?;
-    let post_files = list_folder(postcheck_folder)?;
+/// folder: the header, any warnings, the file summary, the devices that
+/// couldn't be verified, and one section per common device with each
+/// changed command's `-`/`+` lines.
+///
+/// `root` is what the two folder paths are shown relative to.
+///
+/// A device that failed or went missing has nothing to diff. It's
+/// listed up top instead, so it can't hide behind "No meaningful
+/// changes detected.":
+///
+/// ```text
+/// ACTION REQUIRED: 1 device(s) could not be verified
+/// --------------------------------------------------------------------------------
+/// ! SW-1 (10.0.0.5): Device unreachable after the change
+///     Before: Captured. After: Failed.
+///     Evidence: 10.0.0.5_FAILED.txt in the postcheck folder
+///     | could not connect to 10.0.0.5:22: Connection refused (os error 111)
+/// ```
+pub fn compare_folders(
+    root: &Path,
+    ticket: &str,
+    precheck_folder: &Path,
+    postcheck_folder: &Path,
+) -> anyhow::Result<String> {
+    let pre_files = capture::capture_files(precheck_folder)?;
+    let post_files = capture::capture_files(postcheck_folder)?;
+
+    // common_files are captured in both runs.
+    let (common_files, problems) = capture::device_problems(precheck_folder, postcheck_folder)?;
+    let (warnings, _notes) = capture::baseline_warnings(precheck_folder, postcheck_folder);
 
     let pre_set: HashSet<&String> = pre_files.iter().collect();
     let post_set: HashSet<&String> = post_files.iter().collect();
 
     // The listings are sorted, so these are too.
-    let common_files: Vec<&String> = pre_files.iter().filter(|name| post_set.contains(name)).collect();
     let missing_post: Vec<&String> = pre_files.iter().filter(|name| !post_set.contains(name)).collect();
     let new_post: Vec<&String> = post_files.iter().filter(|name| !pre_set.contains(name)).collect();
 
@@ -299,9 +314,17 @@ pub fn compare_folders(ticket: &str, precheck_folder: &Path, postcheck_folder: &
     report.push_str(RULE_EQUALS);
     report.push_str("\n\n");
     writeln!(report, "Ticket:           {ticket}")?;
-    writeln!(report, "Precheck Folder:  {}", display_path(precheck_folder))?;
-    writeln!(report, "Postcheck Folder: {}", display_path(postcheck_folder))?;
+    writeln!(report, "Precheck Folder:  {}", display_path_from(root, precheck_folder))?;
+    writeln!(
+        report,
+        "Postcheck Folder: {}",
+        display_path_from(root, postcheck_folder)
+    )?;
     report.push('\n');
+
+    for warning in &warnings {
+        writeln!(report, "WARNING: {warning}\n")?;
+    }
 
     report.push_str("File Summary\n");
     report.push_str(RULE_DASHES);
@@ -327,7 +350,28 @@ pub fn compare_folders(ticket: &str, precheck_folder: &Path, postcheck_folder: &
         report.push('\n');
     }
 
-    for file_name in common_files {
+    if !problems.is_empty() {
+        writeln!(
+            report,
+            "ACTION REQUIRED: {} device(s) could not be verified",
+            problems.len()
+        )?;
+        report.push_str(RULE_DASHES);
+        report.push('\n');
+
+        for problem in &problems {
+            writeln!(report, "! {}: {}", problem.label(), problem.title)?;
+            writeln!(report, "    Before: {}. After: {}.", problem.before, problem.after)?;
+            writeln!(report, "    Evidence: {}", problem.evidence)?;
+            for line in &problem.detail {
+                writeln!(report, "    | {line}")?;
+            }
+        }
+
+        report.push('\n');
+    }
+
+    for file_name in &common_files {
         let pre_sections = parse_sections(&precheck_folder.join(file_name))?;
         let post_sections = parse_sections(&postcheck_folder.join(file_name))?;
 
@@ -379,6 +423,29 @@ pub fn compare_folders(ticket: &str, precheck_folder: &Path, postcheck_folder: &
     Ok(report)
 }
 
+/// The console lines for a pair of folders that may not be trustworthy:
+/// one `WARNING:` per warning, then one `Note:` per note.
+pub fn console_lines(warnings: &[String], notes: &[String]) -> Vec<String> {
+    warnings
+        .iter()
+        .map(|warning| format!("WARNING: {warning}"))
+        .chain(notes.iter().map(|note| format!("Note: {note}")))
+        .collect()
+}
+
+/// The console line that names the devices with no usable capture:
+///
+/// ```text
+/// ACTION REQUIRED: 2 device(s) could not be verified: SW-1, 10.0.0.9
+/// ```
+pub fn action_required_line(names: &[&str]) -> String {
+    format!(
+        "ACTION REQUIRED: {} device(s) could not be verified: {}",
+        names.len(),
+        names.join(", ")
+    )
+}
+
 /// Write `Compare/compare_<run_timestamp>.txt` from the latest
 /// precheck and postcheck folders, printing progress and the summary.
 /// Returns the report path, or `None` when a run folder is missing.
@@ -399,10 +466,24 @@ pub fn write_compare_report(ticket: &str, dirs: &TicketDirs, run_timestamp: &str
     fs::create_dir_all(&dirs.compare)?;
     let compare_file = dirs.compare.join(format!("compare_{run_timestamp}.txt"));
 
-    let report = compare_folders(ticket, &precheck_folder, &postcheck_folder)?;
+    // Said on the console as well as in the report, so you see it
+    // before you leave the window.
+    let (_common, problems) = capture::device_problems(&precheck_folder, &postcheck_folder)?;
+    let (warnings, notes) = capture::baseline_warnings(&precheck_folder, &postcheck_folder);
+
+    for line in console_lines(&warnings, &notes) {
+        println!("{line}");
+    }
+
+    let report = compare_folders(&dirs.root, ticket, &precheck_folder, &postcheck_folder)?;
     fs::write(&compare_file, report)?;
 
-    println!("Compare report created: {}", display_path(&compare_file));
+    if !problems.is_empty() {
+        let names: Vec<&str> = problems.iter().map(|problem| problem.name.as_str()).collect();
+        println!("{}", action_required_line(&names));
+    }
+
+    println!("Compare report created: {}", dirs.display(&compare_file));
 
     Ok(Some(compare_file))
 }
@@ -418,13 +499,13 @@ mod tests {
         let post = tmp.path().join("post");
         fs::create_dir_all(&pre).unwrap();
         fs::create_dir_all(&post).unwrap();
-        let capture = "Hostname: sw\nGenerated: 1\n### show version ###\nUptime: 1 day\nArista\n";
+        let capture = "Hostname: sw\nGenerated: 1\n### show version ###\n--------------------------------------------------------------------------------\nUptime: 1 day\nArista\n";
         fs::write(pre.join("sw.txt"), capture).unwrap();
         fs::write(post.join("sw.txt"), capture.replace("1 day", "2 days")).unwrap();
         fs::write(pre.join("old.txt"), "x\n").unwrap();
         fs::write(post.join("new.txt"), "y\n").unwrap();
 
-        let report = compare_folders("NET-9", &pre, &post).unwrap();
+        let report = compare_folders(tmp.path(), "NET-9", &pre, &post).unwrap();
         assert!(report.starts_with("Pre/Post Maintenance Comparison Report\n"));
         assert!(report.contains("Ticket:           NET-9\n"));
         assert!(report.contains("Common files: 1\nMissing in postcheck: 1\nNew in postcheck: 1\n\n"));

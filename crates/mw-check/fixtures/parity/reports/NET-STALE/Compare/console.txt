@@ -1,0 +1,9 @@
+WARNING: The before capture is newer than the after capture. Did you run before again by mistake?
+WARNING: The before capture (precheck_2026-04-14_10-40-00) didn't finish. It was interrupted partway, so devices may be missing from it. Run it again before you trust this comparison.
+ACTION REQUIRED: 5 device(s) could not be verified: V6, LATE, 10.0.0.4, 10.0.0.9, 10.0.0.8
+Compare report created: reports/NET-STALE/Compare/compare_2026-04-14_10-45-00.txt
+WARNING: The before capture is newer than the after capture. Did you run before again by mistake?
+WARNING: The before capture (precheck_2026-04-14_10-40-00) didn't finish. It was interrupted partway, so devices may be missing from it. Run it again before you trust this comparison.
+ACTION REQUIRED: 5 device(s) could not be verified: V6, LATE, 10.0.0.4, 10.0.0.9, 10.0.0.8
+HTML comparison report created.
+Created: reports/NET-STALE/Compare/compare_2026-04-14_10-45-00.html

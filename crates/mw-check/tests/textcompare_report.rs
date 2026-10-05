@@ -7,7 +7,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use mw_check::layout::ticket_dirs_under;
+use mw_check::layout::ticket_dirs_in;
 use mw_check::textcompare::{compare_folders, parse_sections, write_compare_report};
 
 fn fixture(part: &str) -> PathBuf {
@@ -17,12 +17,12 @@ fn fixture(part: &str) -> PathBuf {
         .join(part)
 }
 
-const CAPTURE: &str = "Hostname: switch1\n### show vlan brief ###\n10  users  active\n";
+const CAPTURE: &str = "Hostname: switch1\n### show vlan brief ###\n--------------------------------------------------------------------------------\n10  users  active\n";
 
 #[test]
 fn parse_sections_and_compare_report() {
     let tmp = tempfile::tempdir().unwrap();
-    let dirs = ticket_dirs_under(tmp.path(), "NET-1");
+    let dirs = ticket_dirs_in(tmp.path(), "NET-1").unwrap();
     let pre_run = dirs.precheck.join("precheck_2026-01-01_00-00");
     let post_run = dirs.postcheck.join("postcheck_2026-01-01_02-00");
     fs::create_dir_all(&pre_run).unwrap();
@@ -32,7 +32,11 @@ fn parse_sections_and_compare_report() {
     fs::write(post_run.join("switch1.txt"), format!("{CAPTURE}20  voice  active\n")).unwrap();
 
     let sections = parse_sections(&pre_run.join("switch1.txt")).unwrap();
-    assert_eq!(sections["show vlan brief"], vec!["10  users  active"]);
+    // The dash rule is part of the marker; it stays as the section's first line.
+    assert_eq!(
+        sections["show vlan brief"],
+        vec!["-".repeat(80), "10  users  active".to_string()]
+    );
 
     let report_path = write_compare_report("NET-1", &dirs, "2026-01-01_02-05").unwrap();
 
@@ -49,7 +53,7 @@ fn parse_sections_and_compare_report() {
 #[test]
 fn compare_report_uses_the_latest_run_folders() {
     let tmp = tempfile::tempdir().unwrap();
-    let dirs = ticket_dirs_under(tmp.path(), "NET-2");
+    let dirs = ticket_dirs_in(tmp.path(), "NET-2").unwrap();
     for run in ["precheck_2026-01-01_00-00", "precheck_2026-01-02_00-00"] {
         let folder = dirs.precheck.join(run);
         fs::create_dir_all(&folder).unwrap();
@@ -70,7 +74,7 @@ fn compare_report_uses_the_latest_run_folders() {
 #[test]
 fn compare_report_skips_without_precheck() {
     let tmp = tempfile::tempdir().unwrap();
-    let dirs = ticket_dirs_under(tmp.path(), "NET-1");
+    let dirs = ticket_dirs_in(tmp.path(), "NET-1").unwrap();
 
     assert_eq!(write_compare_report("NET-1", &dirs, "2026-01-01_00-00").unwrap(), None);
 
@@ -90,7 +94,7 @@ fn unchanged_device_reports_no_meaningful_changes() {
     let post = tmp.path().join("post");
     fs::create_dir_all(&pre).unwrap();
     fs::create_dir_all(&post).unwrap();
-    let capture = "Hostname: sw\nGenerated: 2026-01-01 00:00:00\n\n### show version ###\nUptime: 1 day\nArista\n";
+    let capture = "Hostname: sw\nGenerated: 2026-01-01 00:00:00\n\n### show version ###\n--------------------------------------------------------------------------------\nUptime: 1 day\nArista\n";
     fs::write(pre.join("sw.txt"), capture).unwrap();
     fs::write(
         post.join("sw.txt"),
@@ -98,50 +102,29 @@ fn unchanged_device_reports_no_meaningful_changes() {
     )
     .unwrap();
 
-    let report = compare_folders("NET-3", &pre, &post).unwrap();
+    let report = compare_folders(tmp.path(), "NET-3", &pre, &post).unwrap();
     assert!(report.ends_with("Device/File: sw.txt\n================================================================================\n\nNo meaningful changes detected.\n"));
     assert!(!report.contains("Command:"));
 }
 
+/// The bundled demo, byte for byte. The Python demo copies the
+/// captures under `reports/`; here they sit under the crate's
+/// `fixtures/`, so the fixtures folder is passed as the root with the
+/// same folder names below it. Nothing depends on the working directory
+/// or the environment.
 #[test]
 fn fixture_report_matches_the_python_tool() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures");
     let pre = fixture("Precheck/precheck_2026-04-14_08-48");
     let post = fixture("Postcheck/postcheck_2026-04-14_10-42");
-    let got = compare_folders("NET-DEMO", &pre, &post).unwrap();
+    let got = compare_folders(&root, "NET-DEMO", &pre, &post)
+        .unwrap()
+        .replace("Folder:  NET-DEMO/", "Folder:  reports/NET-DEMO/")
+        .replace("Folder: NET-DEMO/", "Folder: reports/NET-DEMO/");
     let expected = fs::read_to_string(fixture("expected/compare.txt"))
         .unwrap()
         .replace("\r\n", "\n");
 
-    let got_lines: Vec<&str> = got.lines().collect();
-    let expected_lines: Vec<&str> = expected.lines().collect();
-
-    // The two folder lines name the folders relative to the Python
-    // tool's repository root (reports/NET-DEMO/...); here they sit under
-    // the crate's fixtures/, so only the run folder name is checked.
-    for (label, run) in [
-        ("Precheck Folder:  ", "precheck_2026-04-14_08-48"),
-        ("Postcheck Folder: ", "postcheck_2026-04-14_10-42"),
-    ] {
-        let line = got_lines.iter().find(|l| l.starts_with(label)).expect(label);
-        assert!(line.ends_with(run), "{line}");
-        let line = expected_lines.iter().find(|l| l.starts_with(label)).expect(label);
-        assert!(line.ends_with(run), "{line}");
-    }
-
-    let mask = |lines: &[&str]| -> Vec<String> {
-        lines
-            .iter()
-            .map(|l| {
-                if l.starts_with("Precheck Folder:  ") || l.starts_with("Postcheck Folder: ") {
-                    l.split_whitespace().next().unwrap().to_string()
-                } else {
-                    l.to_string()
-                }
-            })
-            .collect()
-    };
-
-    assert_eq!(mask(&got_lines), mask(&expected_lines));
-    assert_eq!(got_lines.len(), expected_lines.len());
-    assert!(got.ends_with('\n') && expected.ends_with('\n'));
+    assert!(expected.contains("Precheck Folder:  reports/NET-DEMO/Precheck/precheck_2026-04-14_08-48\n"));
+    assert_eq!(got, expected);
 }

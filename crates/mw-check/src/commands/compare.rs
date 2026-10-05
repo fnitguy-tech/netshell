@@ -13,8 +13,9 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::inventory::load_inventory;
-use crate::layout;
+use crate::inventory::load_pairs;
+use crate::layout::{self, TicketDirs};
+use crate::notes;
 use crate::report::build_html_report;
 
 use super::resolve_ticket;
@@ -25,7 +26,8 @@ pub struct Args {
     #[arg(value_name = "TICKET")]
     pub ticket: Option<String>,
 
-    /// Inventory YAML, read only for its optional pairs: list
+    /// Inventory YAML, read only for its optional pairs: list, so a file
+    /// with nothing but pairs: works
     /// (default: inventory/devices.yml when present)
     #[arg(short, long, value_name = "FILE")]
     pub inventory: Option<PathBuf>,
@@ -37,54 +39,60 @@ pub struct Args {
     pub notes: Option<PathBuf>,
 }
 
-/// The `pairs:` list of an inventory, or `None` when the file is
-/// absent. The HTML report can be built on a machine that has no
-/// inventory (only the captured evidence), so a missing file is not
-/// an error here.
-pub fn load_pairs(path: Option<&Path>) -> anyhow::Result<Option<Vec<(String, String)>>> {
-    let default = layout::default_inventory();
-    let path = path.unwrap_or(&default);
+/// Read the notes file and tell the user what was found.
+///
+/// A file that's there but can't be read is a warning, and the report
+/// is still built: the findings don't depend on the notes, and "no
+/// notes" would send you looking for a file that's sitting right there.
+pub fn load_notes(notes_path: &Path, dirs: &TicketDirs) -> Option<String> {
+    let shown = dirs.display(notes_path);
 
-    if !path.exists() {
-        return Ok(None);
-    }
-
-    Ok(Some(load_inventory(path)?.pairs))
-}
-
-pub fn run(args: Args) -> anyhow::Result<()> {
-    let ticket = resolve_ticket(args.ticket.as_deref())?;
-
-    let dirs = layout::ticket_dirs(&ticket);
-    let run_timestamp = layout::timestamp();
-    let pairs = load_pairs(args.inventory.as_deref())?.unwrap_or_default();
-
-    let notes_path = args.notes.clone().unwrap_or_else(|| dirs.notes.clone());
-    let notes_text = crate::notes::load(&notes_path);
+    let notes_text = match notes::load(notes_path) {
+        Ok(text) => text,
+        Err(error) => {
+            println!("WARNING: {error} The report is being built without your notes.");
+            return None;
+        }
+    };
 
     match notes_text.as_deref() {
-        None => println!(
-            "No maintenance notes at {}. Run `mw notes` to start one.",
-            layout::display_path(&notes_path)
-        ),
-        Some(text) if crate::notes::render_html(text).is_empty() => {
+        None => println!("No maintenance notes at {shown}. Run `mw notes` to start one."),
+        Some(text) if notes::render_html(text).is_empty() => {
             // A template nobody filled in must not pass for a finished
             // write-up, so say so rather than rendering empty headings.
-            println!(
-                "Notes: {} is still a blank template; leaving it out.",
-                layout::display_path(&notes_path)
-            );
+            println!("Notes: {shown} is still a blank template; leaving it out.");
         }
         Some(text) => {
-            let open = crate::notes::open_task_count(text);
+            let open = notes::open_task_count(text);
             let suffix = if open > 0 {
                 format!(", {open} item(s) still open")
             } else {
                 String::new()
             };
-            println!("Notes: {}{suffix}", layout::display_path(&notes_path));
+            println!("Notes: {shown}{suffix}");
         }
     }
+
+    notes_text
+}
+
+pub fn run(args: Args) -> anyhow::Result<()> {
+    let ticket = resolve_ticket(args.ticket.as_deref())?;
+    let root = layout::root();
+
+    let dirs = layout::ticket_dirs_in(&root, &ticket)?;
+    let run_timestamp = layout::timestamp();
+
+    // Only the pairs: list is read, so a file that holds nothing else
+    // is fine here, and so is no file at all.
+    let inventory_path = args
+        .inventory
+        .clone()
+        .unwrap_or_else(|| layout::default_inventory_in(&root));
+    let pairs = load_pairs(&inventory_path)?;
+
+    let notes_path = args.notes.clone().unwrap_or_else(|| dirs.notes.clone());
+    let notes_text = load_notes(&notes_path, &dirs);
 
     build_html_report(&ticket, &dirs, &run_timestamp, Some(&pairs), notes_text.as_deref())?;
 

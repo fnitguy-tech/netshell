@@ -1,0 +1,20 @@
+Hostname: SW-3
+IP Address: 10.0.0.7
+Generated: 2026-04-14 08:48:02.123456
+================================================================================
+
+
+### show ip bgp summary ###
+--------------------------------------------------------------------------------
+  Neighbor         V  AS           MsgRcvd   MsgSent  InQ OutQ  Up/Down State   PfxRcd PfxAcc
+  203.0.113.1      4  65010          1234      1230    0    0 5d02h    Estab   100    98
+
+
+### show running-config ###
+--------------------------------------------------------------------------------
+hostname SW-3
+banner login
+### AUTHORIZED USE ONLY ###
+EOF
+router bgp 65001
+   neighbor 203.0.113.1 remote-as 65010

@@ -13,6 +13,7 @@
 
 use std::path::PathBuf;
 
+use crate::capture;
 use crate::layout::{self, find_latest_folder};
 use crate::notes;
 
@@ -38,31 +39,17 @@ fn captured_hostnames(folder: Option<&std::path::Path>) -> Vec<String> {
         return Vec::new();
     };
 
-    let Ok(entries) = std::fs::read_dir(folder) else {
-        return Vec::new();
-    };
-
-    let mut names: Vec<String> = entries
-        .filter_map(Result::ok)
-        .filter_map(|entry| {
-            let name = entry.file_name().to_string_lossy().into_owned();
-            let stem = name.strip_suffix(".txt")?;
-
-            if stem.ends_with("_FAILED") {
-                return None;
-            }
-
-            Some(stem.to_string())
-        })
-        .collect();
-
-    names.sort();
-    names
+    capture::capture_files(folder)
+        .unwrap_or_default()
+        .iter()
+        .filter(|name| !capture::is_failed(name))
+        .filter_map(|name| name.strip_suffix(".txt").map(str::to_string))
+        .collect()
 }
 
 pub fn run(args: Args) -> anyhow::Result<()> {
     let ticket = resolve_ticket(args.ticket.as_deref())?;
-    let dirs = layout::ticket_dirs(&ticket);
+    let dirs = layout::ticket_dirs(&ticket)?;
 
     let precheck_folder = find_latest_folder(&dirs.precheck, "precheck_");
     let postcheck_folder = find_latest_folder(&dirs.postcheck, "postcheck_");
@@ -75,7 +62,7 @@ pub fn run(args: Args) -> anyhow::Result<()> {
     }
 
     let label = |folder: Option<&std::path::PathBuf>| {
-        folder.map_or_else(|| "not captured yet".to_string(), |path| layout::display_path(path))
+        folder.map_or_else(|| "not captured yet".to_string(), |path| dirs.display(path))
     };
 
     let written = notes::write_template(
@@ -87,14 +74,11 @@ pub fn run(args: Args) -> anyhow::Result<()> {
     )?;
 
     if !written {
-        println!(
-            "Notes already exist: {} (left as they are)",
-            layout::display_path(&notes_path)
-        );
+        println!("Notes already exist: {} (left as they are)", dirs.display(&notes_path));
         return Ok(());
     }
 
-    println!("Notes template created: {}", layout::display_path(&notes_path));
+    println!("Notes template created: {}", dirs.display(&notes_path));
     println!(
         "Seeded with {} device(s). Fill it in, then run `mw report`.",
         hostnames.len()

@@ -10,9 +10,10 @@ use mw_check::analysis::{
     ImpactCounts,
 };
 use mw_check::capture::safe_id;
-use mw_check::layout::ticket_dirs_under;
+use mw_check::layout::ticket_dirs_in;
 use mw_check::report::{
-    CHART_JS_SCRIPT_TAG, build_html_report, escape, render_diff_line, render_finding, render_html, render_html_at,
+    CHART_JS_INTEGRITY, CHART_JS_SCRIPT_TAG, CHART_JS_URL, build_html_report, escape, json_string, render_diff_line,
+    render_finding, render_html, render_html_at, script_json,
 };
 
 const FIXTURE: &str = include_str!(concat!(
@@ -179,6 +180,8 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
 
     Analysis {
         common_files,
+        device_problems: Vec::new(),
+        warnings: Vec::new(),
         device_reports: devices,
         pairs: Vec::new(),
         pair_findings: Vec::new(),
@@ -191,7 +194,7 @@ fn analysis(mut devices: Vec<DeviceReport>) -> Analysis {
 }
 
 fn render(ticket: &str, analysis: &Analysis) -> String {
-    render_html(ticket, Path::new(PRE), Path::new(POST), analysis, None)
+    render_html(Path::new(""), ticket, Path::new(PRE), Path::new(POST), analysis, None)
 }
 
 fn index_of(haystack: &str, needle: &str) -> usize {
@@ -592,7 +595,14 @@ fn hostile_strings_are_escaped_everywhere() {
     let mut analysis = analysis(vec![device("SW-1", vec![hostile], config, diffs)]);
     analysis.pairs = vec![("<A>".to_string(), "<B>".to_string())];
 
-    let page = render_html("NET-<1>", Path::new("pre/<x>"), Path::new("post/<y>"), &analysis, None);
+    let page = render_html(
+        Path::new(""),
+        "NET-<1>",
+        Path::new("pre/<x>"),
+        Path::new("post/<y>"),
+        &analysis,
+        None,
+    );
 
     assert!(!page.contains("<script>alert"));
     assert!(!page.contains("<img "));
@@ -638,6 +648,72 @@ fn chart_data_is_embedded_like_python_json() {
     assert_eq!(page.matches("<canvas").count(), 3);
     assert!(page.contains("<li>2 layer 2 item(s).</li>"));
     assert!(page.contains("<li>1 evidence only item(s).</li>"));
+}
+
+// --- report hardening ----------------------------------------------------
+
+#[test]
+fn script_json_cannot_close_the_script_block() {
+    let hostile = "</script><script>alert(\"x\")</script> & <!--";
+    let encoded = script_json([hostile]);
+
+    assert!(!encoded.contains('<') && !encoded.contains('>') && !encoded.contains('&'));
+    assert_eq!(
+        encoded,
+        "[\"\\u003c/script\\u003e\\u003cscript\\u003ealert(\\\"x\\\")\\u003c/script\\u003e \\u0026 \\u003c!--\"]"
+    );
+    // JavaScript and JSON both read the escapes back as the same text.
+    let decoded: Vec<String> = serde_json::from_str(&encoded).unwrap();
+    assert_eq!(decoded, [hostile]);
+    // Ordinary values are written exactly as json.dumps writes them.
+    assert_eq!(script_json(["SITE-A-SW-1", "22"]), "[\"SITE-A-SW-1\", \"22\"]");
+    assert_eq!(json_string("Z\u{fc}rich"), "\"Z\\u00fcrich\"");
+}
+
+#[test]
+fn a_hostile_device_name_stays_inside_its_script_string() {
+    // Linux allows "<" and ">" in a file name, so any "<" reaching the
+    // script block raw is the bug.
+    let analysis = analysis(vec![device("<script>alert(1)<", vec![], vec![], BTreeMap::new())]);
+    let page = render("NET-1", &analysis);
+    let script = &page[page.rfind("<script>").unwrap()..];
+
+    assert!(script.contains("const deviceLabels = [\"\\u003cscript\\u003ealert(1)\\u003c\"];"));
+    assert!(!script["<script>".len()..].contains("<script>alert(1)"));
+}
+
+#[test]
+fn chart_js_is_pinned_and_hash_checked() {
+    let analysis = analysis(vec![device("switch1", vec![], vec![], BTreeMap::new())]);
+    let page = render("NET-1", &analysis);
+
+    assert_eq!(
+        CHART_JS_SCRIPT_TAG,
+        format!(
+            "<script src=\"{CHART_JS_URL}\" integrity=\"{CHART_JS_INTEGRITY}\" crossorigin=\"anonymous\"></script>"
+        )
+    );
+    assert!(page.contains(
+        "<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js\" \
+         integrity=\"sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ\" \
+         crossorigin=\"anonymous\"></script>"
+    ));
+    assert_eq!(page.matches("<script").count(), 2);
+}
+
+#[test]
+fn the_report_says_so_when_the_charts_cannot_load() {
+    let analysis = analysis(vec![device("switch1", vec![], vec![], BTreeMap::new())]);
+    let page = render("NET-1", &analysis);
+    let script = &page[page.rfind("<script>").unwrap()..];
+
+    // Every use of Chart sits behind the check, so a blocked CDN can't
+    // stop the script with a ReferenceError.
+    let guard = index_of(script, "if (typeof Chart === \"undefined\") {");
+    assert!(guard < index_of(script, "Chart.defaults.color"));
+    assert!(guard < index_of(script, "new Chart("));
+    assert!(script.contains("Charts are not shown because Chart.js could not be loaded from the CDN."));
+    assert_eq!(script.matches('{').count(), script.matches('}').count());
 }
 
 #[test]
@@ -686,6 +762,7 @@ fn sections_come_in_the_python_order() {
 fn static_skeleton_is_identical_to_the_fixture() {
     let analysis = analysis(vec![device("SW-1", vec![], vec![], BTreeMap::new())]);
     let page = render_html_at(
+        Path::new(""),
         "NET-DEMO",
         Path::new(PRE),
         Path::new(POST),
@@ -734,6 +811,7 @@ fn static_skeleton_is_identical_to_the_fixture() {
 fn chart_canvases_and_footer() {
     let analysis = analysis(vec![device("SW-1", vec![], vec![], BTreeMap::new())]);
     let page = render_html_at(
+        Path::new(""),
         "NET-1",
         Path::new(PRE),
         Path::new(POST),
@@ -864,7 +942,7 @@ fn python_interface_report_assertions() {
 #[test]
 fn build_html_report_reports_missing_run_folders() {
     let tmp = tempfile::tempdir().unwrap();
-    let dirs = ticket_dirs_under(tmp.path(), "NET-1");
+    let dirs = ticket_dirs_in(tmp.path(), "NET-1").unwrap();
 
     let result = build_html_report("NET-1", &dirs, "2026-01-01_02-05", None, None).unwrap();
     assert_eq!(result, None);

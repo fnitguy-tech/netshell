@@ -1,0 +1,5 @@
+ACTION REQUIRED: 3 device(s) could not be verified: SW-1, SW-3, SW-9
+Compare report created: reports/NET-FAIL/Compare/compare_2026-04-14_10-45-00.txt
+ACTION REQUIRED: 3 device(s) could not be verified: SW-1, SW-3, SW-9
+HTML comparison report created.
+Created: reports/NET-FAIL/Compare/compare_2026-04-14_10-45-00.html

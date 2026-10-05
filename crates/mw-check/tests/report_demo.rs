@@ -239,6 +239,8 @@ fn demo_analysis() -> Analysis {
             .iter()
             .map(|h| format!("{h}.txt"))
             .collect(),
+        device_problems: Vec::new(),
+        warnings: Vec::new(),
         device_reports: vec![site_a_sw_1, site_a_sw_2, site_a_fw_1, site_b_sw_1],
         pairs: vec![("SITE-A-SW-1".to_string(), "SITE-A-SW-2".to_string())],
         pair_findings: Vec::new(),
@@ -278,6 +280,7 @@ fn demo_report_is_byte_identical_to_the_python_report() {
     assert_eq!(generated.len(), "2026-10-02 16:47:40".len());
 
     let page = render_html_at(
+        Path::new(""),
         "NET-DEMO",
         Path::new("reports/NET-DEMO/Precheck/precheck_2026-04-14_08-48"),
         Path::new("reports/NET-DEMO/Postcheck/postcheck_2026-04-14_10-42"),

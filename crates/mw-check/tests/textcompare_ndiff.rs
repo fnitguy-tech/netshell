@@ -297,3 +297,112 @@ fn ndiff_matches_cpython_difflib() {
         assert_eq!(got, case.expected, "case {}", case.name);
     }
 }
+
+// --- the fancy-replace size cap -------------------------------------------
+//
+// Ported from the Python tests/test_difftrim.py. The byte-for-byte check
+// against Python's own output for a block at and over the cap is in
+// tests/parity_python.rs.
+
+/// A tiny repeatable generator, so the lines differ run to run in no way.
+struct Lcg(u64);
+
+impl Lcg {
+    fn next(&mut self, below: u64) -> u64 {
+        self.0 = self
+            .0
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (self.0 >> 33) % below
+    }
+}
+
+fn config_lines(count: usize, tag: &str, seed: u64) -> Vec<String> {
+    let mut rng = Lcg(seed);
+    (0..count)
+        .map(|i| {
+            format!(
+                "   neighbor 10.{}.{}.{} description {tag}-{}",
+                i / 250,
+                i % 250,
+                rng.next(250) + 1,
+                rng.next(1_000_000)
+            )
+        })
+        .collect()
+}
+
+fn signed(out: &[String], sign: &str) -> Vec<String> {
+    out.iter()
+        .filter_map(|line| line.strip_prefix(sign))
+        .map(str::to_string)
+        .collect()
+}
+
+#[test]
+fn a_five_thousand_line_changed_block_finishes_fast() {
+    let old = config_lines(5000, "old", 1);
+    let new = config_lines(5000, "new", 2);
+    let wrap = |body: &[String]| -> Vec<String> {
+        let mut all = vec!["router bgp 65001".to_string()];
+        all.extend_from_slice(body);
+        all.push("end".to_string());
+        all
+    };
+    let (a, b) = (wrap(&old), wrap(&new));
+
+    let started = std::time::Instant::now();
+    let out = ndiff(&a, &b);
+    let elapsed = started.elapsed();
+
+    // Uncapped, this scores 25 million line pairs and runs for minutes.
+    assert!(elapsed < std::time::Duration::from_secs(2), "{elapsed:?}");
+
+    // Nothing lost: every old line removed, every new line added, in order.
+    assert_eq!(signed(&out, "- "), old);
+    assert_eq!(signed(&out, "+ "), new);
+    assert_eq!(out.first().map(String::as_str), Some("  router bgp 65001"));
+    assert_eq!(out.last().map(String::as_str), Some("  end"));
+}
+
+#[test]
+fn the_cap_rule_is_old_lines_times_new_lines() {
+    assert_eq!(mw_check::difflib::FANCY_REPLACE_MAX_PAIRS, 40_000);
+
+    // Line i of each side differs only in its last word, so the fancy
+    // path pairs them up ("- old", "+ new", "- old", ...). The plain
+    // path writes one block, then the other. The lines are short to
+    // keep a debug build quick: scoring 40,000 pairs is the slow part.
+    let interleaved = |old_count: usize, new_count: usize| -> bool {
+        let a: Vec<String> = (0..old_count).map(|i| format!("Et{i} uplink-old")).collect();
+        let b: Vec<String> = (0..new_count).map(|i| format!("Et{i} uplink-new")).collect();
+        let out = ndiff(&a, &b);
+        let signs: Vec<&str> = out
+            .iter()
+            .map(|line| &line[..1])
+            .filter(|sign| *sign == "-" || *sign == "+")
+            .collect();
+        signs[..2] == ["-", "+"]
+    };
+
+    assert!(interleaved(200, 200)); // 40,000 pairs: at the cap, still fancy
+    assert!(!interleaved(200, 201)); // 40,200 pairs: plain
+}
+
+#[test]
+fn above_the_cap_the_shorter_side_is_written_first() {
+    let a: Vec<String> = (0..300).map(|i| format!("old line {i}")).collect();
+    let b: Vec<String> = (0..200).map(|i| format!("new line {i}")).collect();
+    let out: Vec<String> = ndiff(&a, &b)
+        .into_iter()
+        .filter(|line| line.starts_with('-') || line.starts_with('+'))
+        .collect();
+
+    // difflib's own plain-replace rule: fewer "+" lines than "-", so "+" first.
+    let expected: Vec<String> = b
+        .iter()
+        .map(|line| format!("+ {line}"))
+        .chain(a.iter().map(|line| format!("- {line}")))
+        .collect();
+    assert_eq!(out, expected);
+}

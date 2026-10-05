@@ -1,7 +1,8 @@
 //! The interpreted HTML report: one self-contained file with the
 //! health verdict, outcome summary, attention items, pair symmetry,
-//! charts (Chart.js from a CDN is the only external asset), per-device
-//! findings and every raw diff behind a collapsible section.
+//! charts (Chart.js from a CDN is the only external asset, pinned to
+//! one release and hash-checked; the report reads fine without it),
+//! per-device findings and every raw diff behind a collapsible section.
 //!
 //! Port of the Python `htmlreport.render_html()` and friends. The page
 //! is assembled the same way the Python does it (the same fragments,
@@ -16,10 +17,28 @@ use std::path::{Path, PathBuf};
 use anyhow::Context as _;
 
 use crate::analysis::{self, Analysis, Classification, DeviceReport, DiffKind, Finding, Impact};
-use crate::layout::{TicketDirs, display_path, find_latest_folder};
+use crate::layout::{TicketDirs, display_path_from, find_latest_folder};
+use crate::{capture, textcompare};
+
+/// Chart.js is the report's one outside file, so it's pinned to an
+/// exact release and carries its hash. The browser checks the hash and
+/// refuses a file that doesn't match, so a changed or tampered copy on
+/// the CDN can't run inside a report that's attached to a ticket. To
+/// move to a newer release, change the version and recompute the hash
+/// from the real file:
+///
+/// ```text
+/// curl -sL <CHART_JS_URL> | openssl dgst -sha384 -binary | openssl base64 -A
+/// ```
+pub const CHART_JS_URL: &str = "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js";
+pub const CHART_JS_INTEGRITY: &str = "sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ";
 
 /// The Chart.js CDN tag: the report's only external asset.
-pub const CHART_JS_SCRIPT_TAG: &str = r#"<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>"#;
+pub const CHART_JS_SCRIPT_TAG: &str = concat!(
+    r#"<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" "#,
+    r#"integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" "#,
+    r#"crossorigin="anonymous"></script>"#
+);
 
 /// Commands whose raw diff gets the "Large routing evidence" label.
 const LARGE_ROUTING_COMMANDS: &[&str] = &["show ip bgp", "show ip route", "show routing route"];
@@ -169,8 +188,22 @@ pub fn summary_items(analysis: &Analysis) -> Vec<String> {
     items
 }
 
-/// `json.dumps(str)` with its default `ensure_ascii=True`.
-fn json_string(value: &str) -> String {
+/// One string as JSON that's safe to write inside a `<script>` block:
+/// `json.dumps(str)` with its default `ensure_ascii=True`, then `<`,
+/// `>`, and `&` written as `\u003c`, `\u003e`, and `\u0026`.
+///
+/// Plain JSON isn't safe there. A browser ends a script block at the
+/// first `</script>` it sees, even inside a quoted string, and device
+/// names go into these blocks. A hostname of
+///
+/// ```text
+/// </script><script>alert(1)</script>
+/// ```
+///
+/// would close our script and start its own. The escapes keep the text
+/// inside the string. JavaScript reads them back as the same three
+/// characters, so the chart labels look no different.
+pub fn json_string(value: &str) -> String {
     let mut out = String::with_capacity(value.len() + 2);
     out.push('"');
     for ch in value.chars() {
@@ -182,6 +215,9 @@ fn json_string(value: &str) -> String {
             '\t' => out.push_str("\\t"),
             '\u{8}' => out.push_str("\\b"),
             '\u{c}' => out.push_str("\\f"),
+            '<' => out.push_str("\\u003c"),
+            '>' => out.push_str("\\u003e"),
+            '&' => out.push_str("\\u0026"),
             ' '..='~' => out.push(ch),
             _ => {
                 let mut units = [0u16; 2];
@@ -200,7 +236,8 @@ fn json_list<I: IntoIterator<Item = String>>(items: I) -> String {
     format!("[{}]", items.into_iter().collect::<Vec<_>>().join(", "))
 }
 
-fn json_strings<'a>(items: impl IntoIterator<Item = &'a str>) -> String {
+/// A list of strings for a `<script>` block: Python's `script_json(list)`.
+pub fn script_json<'a>(items: impl IntoIterator<Item = &'a str>) -> String {
     json_list(items.into_iter().map(json_string))
 }
 
@@ -217,8 +254,10 @@ pub fn raw_diff_label(command: &str) -> String {
     }
 }
 
-/// Render the analysis into a single HTML page.
+/// Render the analysis into a single HTML page. `root` is what the two
+/// folder paths are shown relative to.
 pub fn render_html(
+    root: &Path,
     ticket: &str,
     precheck_folder: &Path,
     postcheck_folder: &Path,
@@ -227,6 +266,7 @@ pub fn render_html(
 ) -> String {
     let generated = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     render_html_at(
+        root,
         ticket,
         precheck_folder,
         postcheck_folder,
@@ -239,6 +279,7 @@ pub fn render_html(
 /// [`render_html`] with the footer's "Generated" timestamp supplied,
 /// so a rendering can be compared byte for byte.
 pub fn render_html_at(
+    root: &Path,
     ticket: &str,
     precheck_folder: &Path,
     postcheck_folder: &Path,
@@ -251,7 +292,16 @@ pub fn render_html_at(
 
     let health = overall_health(analysis);
     let symmetry_count: usize = analysis.symmetry_totals.iter().map(|(_, n)| n).sum();
+    let device_problems = &analysis.device_problems;
     let mut assessment = assessment_text(health).to_string();
+
+    if !device_problems.is_empty() {
+        assessment = format!(
+            "{} device(s) couldn't be verified: the capture failed or is missing. \
+             They're listed first, under Devices Not Verified. {assessment}",
+            device_problems.len()
+        );
+    }
 
     if symmetry_count > 0 {
         assessment.push_str(&format!(
@@ -267,16 +317,42 @@ pub fn render_html_at(
         .filter(|report| report.attention_count > 0 || report.action_count > 0)
         .collect();
 
-    let chart_classification_labels = json_strings(Classification::ALL.iter().map(|c| c.label()));
+    let chart_classification_labels = script_json(Classification::ALL.iter().map(|c| c.label()));
     let chart_classification_values = json_numbers(analysis.total_findings_by_classification.iter().map(|(_, n)| n));
-    let chart_impact_labels = json_strings(Impact::ALL.iter().map(|i| i.label()));
+    let chart_impact_labels = script_json(Impact::ALL.iter().map(|i| i.label()));
     let chart_impact_values = json_numbers(impact_totals.iter().map(|(_, n)| n));
     let device_labels: Vec<String> = device_reports
         .iter()
         .map(|report| report.file_name.replace(".txt", ""))
         .collect();
-    let chart_device_labels = json_strings(device_labels.iter().map(String::as_str));
+    let chart_device_labels = script_json(device_labels.iter().map(String::as_str));
     let chart_device_impact = json_numbers(device_reports.iter().map(|report| report.impact_score));
+
+    // Shown above everything else, and only when there's something to
+    // say, so a report with nothing wrong is unchanged. Styled inline
+    // for the same reason: no new CSS in every report for a rare block.
+    let mut top_alerts_html = String::new();
+
+    for warning in &analysis.warnings {
+        let _ = write!(
+            top_alerts_html,
+            "\n    <div class=\"attention-card\" style=\"border-left-color: var(--red);\"><h2>Warning</h2><p>{}</p></div>",
+            escape(warning)
+        );
+    }
+
+    if !device_problems.is_empty() {
+        top_alerts_html.push_str(
+            "\n    <div id=\"device-problems\" class=\"attention-card\" style=\"border-left-color: var(--red);\">\
+             <h2>Devices Not Verified</h2>\
+             <p class=\"muted\">These devices have no usable capture before or after the change, so nothing \
+             below covers them.</p>",
+        );
+        for finding in device_problems {
+            top_alerts_html.push_str(&render_finding(finding));
+        }
+        top_alerts_html.push_str("</div>");
+    }
 
     let mut parts: Vec<String> = Vec::new();
 
@@ -308,7 +384,7 @@ pub fn render_html_at(
     </div>
 </div>
 
-<div class=\"container\">
+<div class=\"container\">{top_alerts_html}
     <div class=\"cards\">
         <a class=\"card clickable\" href=\"#device-findings\"><div class=\"label\">Network Health</div><div class=\"value health-{health_css}\">{health_label}</div></a>
         <a class=\"card clickable\" href=\"#device-findings\"><div class=\"label\">Devices Checked</div><div class=\"value\">{devices_checked}</div></a>
@@ -331,11 +407,11 @@ pub fn render_html_at(
 ",
         title = escape(ticket),
         ticket = escape(ticket),
-        precheck = escape(&display_path(precheck_folder)),
-        postcheck = escape(&display_path(postcheck_folder)),
+        precheck = escape(&display_path_from(root, precheck_folder)),
+        postcheck = escape(&display_path_from(root, postcheck_folder)),
         health_css = health.css(),
         health_label = escape(health.label()),
-        devices_checked = analysis.common_files.len(),
+        devices_checked = analysis.common_files.len() + device_problems.len(),
         devices_with_findings = analysis.devices_with_findings,
         changed = analysis.window_totals.get(Impact::Changed),
         attention = analysis.window_totals.get(Impact::Attention),
@@ -613,12 +689,34 @@ pub fn build_html_report(
     let html_report = dirs.compare.join(format!("compare_{run_timestamp}.html"));
 
     let analysis = analysis::analyze(&precheck_folder, &postcheck_folder, pairs)?;
-    let page = render_html(ticket, &precheck_folder, &postcheck_folder, &analysis, notes_text);
+    let (_warnings, console_notes) = capture::baseline_warnings(&precheck_folder, &postcheck_folder);
+
+    for line in textcompare::console_lines(&analysis.warnings, &console_notes) {
+        println!("{line}");
+    }
+
+    if !analysis.device_problems.is_empty() {
+        let names: Vec<&str> = analysis
+            .device_problems
+            .iter()
+            .filter_map(|finding| finding.subject.first().map(String::as_str))
+            .collect();
+        println!("{}", textcompare::action_required_line(&names));
+    }
+
+    let page = render_html(
+        &dirs.root,
+        ticket,
+        &precheck_folder,
+        &postcheck_folder,
+        &analysis,
+        notes_text,
+    );
 
     fs::write(&html_report, page).with_context(|| format!("writing {}", html_report.display()))?;
 
     println!("HTML comparison report created.");
-    println!("Created: {}", display_path(&html_report));
+    println!("Created: {}", dirs.display(&html_report));
 
     Ok(Some(html_report))
 }
@@ -1118,8 +1216,16 @@ details .diff-box {
 }
 "##;
 
-/// The Chart.js setup, byte for byte the Python report's.
-const CHART_SCRIPT: &str = r##"Chart.defaults.color = "#cbd5e1";
+/// The Chart.js setup, byte for byte the Python report's. Every use of
+/// `Chart` sits behind the check at the top, so a blocked CDN can't
+/// stop the script with a ReferenceError; the report says the charts
+/// are missing instead.
+const CHART_SCRIPT: &str = r##"if (typeof Chart === "undefined") {
+    document.querySelectorAll(".chart-wrap").forEach(function (wrap) {
+        wrap.innerHTML = '<p class="muted">Charts are not shown because Chart.js could not be loaded from the CDN. Everything else in this report is complete.</p>';
+    });
+} else {
+Chart.defaults.color = "#cbd5e1";
 Chart.defaults.borderColor = "rgba(148, 163, 184, 0.18)";
 Chart.defaults.font.family = "Segoe UI, Arial, sans-serif";
 
@@ -1202,4 +1308,5 @@ new Chart(document.getElementById("deviceImpactChart"), {
         }
     }
 });
+}
 "##;

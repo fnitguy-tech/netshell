@@ -1,0 +1,33 @@
+tacacs server TAC-1
+ address ipv4 192.0.2.40
+ key 7 BlockTac37
+!
+tacacs server TAC-2
+ address ipv4 192.0.2.41
+ key BlockTac38
+radius server RAD-1
+ address ipv4 192.0.2.50 auth-port 1812 acct-port 1813
+ key 6 BlockRad39
+ key 0 BlockRad40
+!
+key chain KC
+ key 1
+  key-string 7 ChainKey41
+interface Tunnel1
+ tunnel key 4242
+crypto key export:
+-----BEGIN RSA PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7fakekeyline1
+q8wFakeKeyLine2Zm9vYmFyYmF6cXV4Y29ycmVjdGhvcnNlYmF0dGVyeXN0YXBs
+-----END RSA PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+MIIDdzCCAl+gAwIBAgIEPublicCertLineStays
+-----END CERTIFICATE-----
+after the key
+set shared certificate C private-key "-----BEGIN PRIVATE KEY-----
+QuotedKeyBody42
+-----END PRIVATE KEY-----"
+next
+-----BEGIN OPENSSH PRIVATE KEY-----
+CutOffBody44
+CutOffBody45

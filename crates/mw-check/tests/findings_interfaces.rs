@@ -63,7 +63,9 @@ fn state(address: Option<&str>, status: Option<&str>) -> InterfaceState {
 fn capture(sections: &[(&str, &str)]) -> Sections {
     let mut text = String::from("Hostname: SITE-A-SW-1\n");
     for (command, body) in sections {
-        text.push_str(&format!("### {command} ###\n"));
+        text.push_str(&format!(
+            "### {command} ###\n--------------------------------------------------------------------------------\n"
+        ));
         text.push_str(body);
         if !body.ends_with('\n') {
             text.push('\n');
@@ -307,11 +309,11 @@ fn config_address_with_interfaces_status_fallback() {
 #[test]
 fn down_interface_in_a_full_capture_is_the_attention_finding() {
     let pre = parse_sections_str(
-        "Hostname: SITE-A-SW-1\n### show ip interface brief ###\n\
+        "Hostname: SITE-A-SW-1\n### show ip interface brief ###\n--------------------------------------------------------------------------------\n\
          Loopback0         192.0.2.1/32         up           up                65535\n",
     );
     let post = parse_sections_str(
-        "Hostname: SITE-A-SW-1\n### show ip interface brief ###\n\
+        "Hostname: SITE-A-SW-1\n### show ip interface brief ###\n--------------------------------------------------------------------------------\n\
          Ethernet50/1      198.51.100.10/30     down         down               1500\n\
          Loopback0         192.0.2.1/32         up           up                65535\n",
     );

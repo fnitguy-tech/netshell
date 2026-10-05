@@ -1,0 +1,54 @@
+Pre/Post Maintenance Comparison Report
+================================================================================
+
+Ticket:           NET-FAIL
+Precheck Folder:  reports/NET-FAIL/Precheck/precheck_2026-04-14_08-48-05
+Postcheck Folder: reports/NET-FAIL/Postcheck/postcheck_2026-04-14_10-42-10
+
+File Summary
+--------------------------------------------------------------------------------
+Common files: 1
+Missing in postcheck: 2
+New in postcheck: 2
+
+Missing in Postcheck:
+- SW-1.txt
+- SW-3.txt
+
+New in Postcheck:
++ 10.0.0.5_FAILED.txt
++ SW-9.txt
+
+ACTION REQUIRED: 3 device(s) could not be verified
+--------------------------------------------------------------------------------
+! SW-1 (10.0.0.5): Device unreachable after the change
+    Before: Captured. After: Failed.
+    Evidence: 10.0.0.5_FAILED.txt in the postcheck folder
+    | could not connect to 10.0.0.5:22: Connection refused (os error 111)
+    | Device settings: arista_eos 10.0.0.5:22 <admin & "ops">
+! SW-3 (10.0.0.7): Device missing after the change
+    Before: Captured. After: Not captured.
+    Evidence: SW-3.txt is in the precheck folder only
+! SW-9 (10.0.0.9): Device only in the after capture
+    Before: Not captured. After: Captured.
+    Evidence: SW-9.txt is in the postcheck folder only
+
+
+================================================================================
+Device/File: SW-2.txt
+================================================================================
+
+--------------------------------------------------------------------------------
+Command: show ip bgp summary
+--------------------------------------------------------------------------------
+Differences detected.
+
+- 203.0.113.1 4 65010 Estab 100 98
++ 203.0.113.1 4 65010 Idle(Admin)
+
+--------------------------------------------------------------------------------
+Command: show running-config
+--------------------------------------------------------------------------------
+Differences detected.
+
++    neighbor 203.0.113.1 shutdown

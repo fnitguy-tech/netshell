@@ -6,7 +6,7 @@ use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use mw_check::capture::{HEADER, parse_sections};
+use mw_check::capture::{COMPLETE_MARKER, HEADER, capture_files, parse_sections};
 use mw_check::collect::{Connector, run_collection};
 use mw_check::commands::demo::{DEVICES, ReplayConnector, demo_jobs_in, phase_folder, stamp};
 use mw_check::inventory::{DeviceSpec, Job};
@@ -42,7 +42,7 @@ fn demo_jobs_come_from_the_precheck_captures() {
         assert_eq!(job.device.device_type, device_type);
         assert_eq!(job.device.host, host);
         assert_eq!(job.device.username, "demo");
-        assert_eq!(job.device.password, "demo");
+        assert_eq!(job.device.password.expose(), "demo");
         assert!(!job.commands.is_empty());
         assert!(job.commands.iter().all(|command| command != HEADER));
     }
@@ -61,12 +61,16 @@ fn replayed_collection_reproduces_the_fixture_captures() {
 
     for phase in ["precheck", "postcheck"] {
         let phase_dir = tmp.path().join(phase);
-        let (folder, zip_path) = run_collection(&jobs, phase, &phase_dir, stamp(phase), false, &replay(phase)).unwrap();
+        let result = run_collection(&jobs, phase, &phase_dir, stamp(phase), false, &replay(phase)).unwrap();
+        let (folder, zip_path) = (result.folder.clone(), result.zip.clone());
+        assert_eq!(result.summary_line(), "4 of 4 captured.");
+        assert_eq!(result.exit_code(), 0);
 
         assert_eq!(folder, phase_dir.join(format!("{phase}_{}", stamp(phase))));
         assert_eq!(zip_path, phase_dir.join(format!("{phase}_{}.zip", stamp(phase))));
 
-        // One file per device, named after the hostname, nothing else.
+        // One file per device, named after the hostname, plus the
+        // marker that says the run got to the end. Nothing else.
         let mut written: Vec<String> = fs::read_dir(&folder)
             .unwrap()
             .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
@@ -76,8 +80,10 @@ fn replayed_collection_reproduces_the_fixture_captures() {
             .iter()
             .map(|(_, _, hostname)| format!("{hostname}.txt"))
             .collect();
+        expected.push(COMPLETE_MARKER.to_string());
         expected.sort();
         assert_eq!(written, expected);
+        assert_eq!(capture_files(&folder).unwrap().len(), DEVICES.len());
 
         let source_folder = phase_folder(&fixtures(), phase);
 
@@ -138,16 +144,13 @@ fn unreachable_device_gets_a_failed_marker() {
     let mut jobs = demo_jobs_in(&fixtures()).unwrap();
     jobs.truncate(1);
     jobs.push(Job {
-        device: DeviceSpec {
-            device_type: "arista_eos".to_string(),
-            host: "198.51.100.99".to_string(),
-            username: "demo".to_string(),
-            password: "demo".to_string(),
-        },
+        // Not the demo's own password ("demo"): the collector blanks the
+        // password out of error text, and this error says "no demo capture".
+        device: DeviceSpec::new("arista_eos", "198.51.100.99", "demo", "pw"),
         commands: vec!["show version".to_string(), "show ip route".to_string()],
     });
 
-    let (folder, zip_path) = run_collection(
+    let result = run_collection(
         &jobs,
         "precheck",
         tmp.path(),
@@ -156,6 +159,12 @@ fn unreachable_device_gets_a_failed_marker() {
         &replay("precheck"),
     )
     .unwrap();
+    let (folder, zip_path) = (result.folder.clone(), result.zip.clone());
+    assert_eq!(
+        result.summary_line(),
+        "1 of 2 captured; 1 failed: 198.51.100.99 (capture failed)"
+    );
+    assert_eq!(result.exit_code(), 1);
 
     let marker = fs::read_to_string(folder.join("198.51.100.99_FAILED.txt")).unwrap();
     assert!(marker.starts_with("FAILED TO CONNECT TO 198.51.100.99\n"), "{marker}");
@@ -168,9 +177,13 @@ fn unreachable_device_gets_a_failed_marker() {
 
     assert_eq!(
         zip_names(&zip_path),
-        ["198.51.100.99_FAILED.txt".to_string(), "SITE-A-SW-1.txt".to_string()]
-            .into_iter()
-            .collect()
+        [
+            "198.51.100.99_FAILED.txt".to_string(),
+            "SITE-A-SW-1.txt".to_string(),
+            COMPLETE_MARKER.to_string()
+        ]
+        .into_iter()
+        .collect()
     );
 }
 
@@ -206,16 +219,11 @@ impl Connector for FlakyConnector {
 fn failed_command_is_recorded_in_its_section() {
     let tmp = tempfile::tempdir().unwrap();
     let jobs = vec![Job {
-        device: DeviceSpec {
-            device_type: "cisco_ios".to_string(),
-            host: "10.0.0.1".to_string(),
-            username: "u".to_string(),
-            password: "p".to_string(),
-        },
+        device: DeviceSpec::new("cisco_ios", "10.0.0.1", "u", "p"),
         commands: vec!["show version".to_string(), "show ip bgp".to_string()],
     }];
 
-    let (folder, _zip) = run_collection(
+    let folder = run_collection(
         &jobs,
         "postcheck",
         tmp.path(),
@@ -223,7 +231,8 @@ fn failed_command_is_recorded_in_its_section() {
         false,
         &FlakyConnector,
     )
-    .unwrap();
+    .unwrap()
+    .folder;
 
     let sections = parse_sections(&folder.join("FLAKY-1.txt")).unwrap();
     assert_eq!(

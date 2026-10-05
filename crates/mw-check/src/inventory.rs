@@ -13,6 +13,7 @@
 use std::io::{BufRead, Write};
 use std::path::Path;
 
+use netshell::Secret;
 use serde_yaml::Value;
 
 /// The bundled example, relative to the crate source tree.
@@ -33,13 +34,53 @@ pub struct Inventory {
 }
 
 /// One device to reach, with credentials.
-#[derive(Clone, Debug, PartialEq, Eq)]
+///
+/// The password is a [`netshell::Secret`], so it's safe to print. A job
+/// that ends up in a debug line or a panic message can't leak the login
+/// that way, and the memory is wiped when the job is dropped:
+///
+/// ```
+/// use mw_check::inventory::DeviceSpec;
+///
+/// let device = DeviceSpec::new("arista_eos", "192.0.2.11", "admin", "hunter2-not-real");
+/// assert!(!format!("{device:?}").contains("hunter2-not-real"));
+/// assert!(format!("{device:?}").contains("<redacted>"));
+/// assert_eq!(device.password.expose(), "hunter2-not-real");
+/// ```
+#[derive(Clone, Debug)]
 pub struct DeviceSpec {
     pub device_type: String,
     pub host: String,
     pub username: String,
-    pub password: String,
+    pub password: Secret,
 }
+
+impl DeviceSpec {
+    pub fn new(
+        device_type: impl Into<String>,
+        host: impl Into<String>,
+        username: impl Into<String>,
+        password: impl Into<Secret>,
+    ) -> DeviceSpec {
+        DeviceSpec {
+            device_type: device_type.into(),
+            host: host.into(),
+            username: username.into(),
+            password: password.into(),
+        }
+    }
+}
+
+impl PartialEq for DeviceSpec {
+    fn eq(&self, other: &DeviceSpec) -> bool {
+        self.device_type == other.device_type
+            && self.host == other.host
+            && self.username == other.username
+            && self.password.expose() == other.password.expose()
+    }
+}
+
+impl Eq for DeviceSpec {}
 
 /// One collection job: a device and the commands to run on it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -66,6 +107,15 @@ pub fn load_inventory(path: &Path) -> Result<Inventory, InventoryError> {
     let shown = path.display();
 
     let Some(platforms) = data.get("platforms").and_then(Value::as_sequence) else {
+        if data.is_mapping() && data.get("pairs").is_some() {
+            // A pairs-only file is valid for `mw report`, which reads
+            // nothing else. A capture needs devices to connect to.
+            return Err(InventoryError(format!(
+                "{shown}: this file only has a 'pairs' list. That's enough for mw report. \
+                 A capture (mw before, mw after) also needs a top-level 'platforms' list of devices to capture."
+            )));
+        }
+
         return Err(InventoryError(format!(
             "{shown}: expected a top-level 'platforms' list."
         )));
@@ -116,6 +166,14 @@ pub fn load_inventory(path: &Path) -> Result<Inventory, InventoryError> {
 ///
 /// The HTML report can be built on a machine that has no inventory
 /// (only the captured evidence), so a missing file is not an error here.
+///
+/// Nothing but `pairs:` is read, so a file that holds only that list
+/// works, and so does a full inventory or an empty file:
+///
+/// ```yaml
+/// pairs:
+///   - [CORE-EAST, CORE-WEST]
+/// ```
 pub fn load_pairs(path: &Path) -> Result<Vec<(String, String)>, InventoryError> {
     if !path.exists() {
         return Ok(Vec::new());
@@ -123,8 +181,15 @@ pub fn load_pairs(path: &Path) -> Result<Vec<(String, String)>, InventoryError> 
 
     let data = read_yaml(path)?;
 
+    if data.is_null() {
+        return Ok(Vec::new());
+    }
+
     if !data.is_mapping() {
-        return Err(InventoryError(format!("{}: expected a YAML mapping.", path.display())));
+        return Err(InventoryError(format!(
+            "{}: expected a 'pairs:' list at the top level, like this:\npairs:\n  - [CORE-EAST, CORE-WEST]",
+            path.display()
+        )));
     }
 
     pairs_from(&data, path)
@@ -168,7 +233,7 @@ fn pairs_from(data: &Value, path: &Path) -> Result<Vec<(String, String)>, Invent
 }
 
 /// Flatten platforms into one job per device.
-pub fn build_jobs(inventory: &Inventory, username: &str, password: &str) -> Vec<Job> {
+pub fn build_jobs(inventory: &Inventory, username: &str, password: &Secret) -> Vec<Job> {
     inventory
         .platforms
         .iter()
@@ -178,7 +243,7 @@ pub fn build_jobs(inventory: &Inventory, username: &str, password: &str) -> Vec<
                     device_type: platform.device_type.clone(),
                     host: host.clone(),
                     username: username.to_string(),
-                    password: password.to_string(),
+                    password: password.clone(),
                 },
                 commands: platform.commands.clone(),
             })
@@ -187,7 +252,7 @@ pub fn build_jobs(inventory: &Inventory, username: &str, password: &str) -> Vec<
 }
 
 /// Ask for SSH credentials; the password is never echoed or stored.
-pub fn prompt_credentials(username: Option<&str>) -> anyhow::Result<(String, String)> {
+pub fn prompt_credentials(username: Option<&str>) -> anyhow::Result<(String, Secret)> {
     let username = match username {
         Some(name) if !name.is_empty() => name.to_string(),
         _ => {
@@ -199,9 +264,17 @@ pub fn prompt_credentials(username: Option<&str>) -> anyhow::Result<(String, Str
         }
     };
 
-    let password = rpassword::prompt_password("Password: ")?;
+    // Moved straight into a Secret, so there's no plain copy to wipe.
+    let password = Secret::from(rpassword::prompt_password("Password: ")?);
 
     Ok((username, password))
+}
+
+/// Ask for the enable secret. Like the password, it's never echoed and
+/// never taken from the command line, so it can't land in shell history
+/// or a process listing. Press Enter when `enable` asks for no password.
+pub fn prompt_enable_secret() -> anyhow::Result<Secret> {
+    Ok(Secret::from(rpassword::prompt_password("Enable secret: ")?))
 }
 
 fn read_yaml(path: &Path) -> Result<Value, InventoryError> {

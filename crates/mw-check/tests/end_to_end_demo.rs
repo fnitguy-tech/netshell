@@ -1,5 +1,9 @@
 //! The whole analysis on the bundled fixtures, rendered and compared
 //! against the HTML the Python tool produced from the same captures.
+//!
+//! Hermetic: the root that paths are shown relative to is passed in, so
+//! the result doesn't depend on the working directory or on `MW_HOME`,
+//! and the test can run in parallel with any other.
 
 use std::path::Path;
 
@@ -29,18 +33,18 @@ fn demo_analysis_renders_the_python_report() {
                 .map(|rest| rest.split(" | ").next().unwrap_or("").trim().to_string())
         })
         .unwrap_or_default();
-    let html = render_html_at("NET-DEMO", &pre, &post, &analysis, None, &generated)
-        // The Python demo copies the captures under reports/; here they
-        // are read from the fixtures directory. Only the path labels differ.
-        .replace("fixtures/NET-DEMO/", "reports/NET-DEMO/");
+    // The Python demo copies the captures under reports/; here they are
+    // read from the fixtures directory. With fixtures/ as the root, only
+    // the "reports/" prefix of the two folder labels differs.
+    let root = fixtures().parent().unwrap();
+    let html = render_html_at(root, "NET-DEMO", &pre, &post, &analysis, None, &generated)
+        .replace("check: NET-DEMO/", "check: reports/NET-DEMO/");
+    assert!(analysis.device_problems.is_empty() && analysis.warnings.is_empty());
 
     if html != expected {
-        let out = std::env::temp_dir().join("mw-demo-actual.html");
-        std::fs::write(&out, &html).unwrap();
         let first_diff = html.lines().zip(expected.lines()).position(|(a, b)| a != b);
         panic!(
-            "report differs from the Python fixture (actual written to {}); first differing line: {:?}",
-            out.display(),
+            "report differs from the Python fixture; first differing line: {:?}",
             first_diff.map(|i| (i + 1, html.lines().nth(i), expected.lines().nth(i)))
         );
     }

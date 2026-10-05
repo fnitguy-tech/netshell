@@ -28,7 +28,9 @@
 //! - [x] item          a ticked checkbox
 //! `code`              inline code
 //! **bold**            inline bold
-//! <!-- comment -->    dropped (the template's own prompts)
+//! <!-- comment -->    dropped (the template's own prompts); a comment
+//!                     may run over several lines, and has to start
+//!                     its line
 //! ```
 //!
 //! Anything else is a paragraph. There is no nesting, no tables, and no
@@ -65,7 +67,8 @@ pub const TEMPLATE_SECTIONS: [(&str, &str); 5] = [
 static HEADING: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^##\s+(.*\S)\s*$").unwrap());
 static TASK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^-\s+\[([ xX])\]\s+(.*\S)\s*$").unwrap());
 static BULLET: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^-\s+(.*\S)\s*$").unwrap());
-static COMMENT_ONLY: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\s*<!--.*-->\s*$").unwrap());
+const COMMENT_OPEN: &str = "<!--";
+const COMMENT_CLOSE: &str = "-->";
 static CODE_SPAN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"`([^`]+)`").unwrap());
 static BOLD_SPAN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\*\*([^*]+)\*\*").unwrap());
 
@@ -149,9 +152,43 @@ pub fn write_template(
     Ok(true)
 }
 
+/// A notes file that exists but can't be read.
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[error("{0}")]
+pub struct NotesError(pub String);
+
 /// The notes file's text, or `None` when there is no file to read.
-pub fn load(path: &Path) -> Option<String> {
-    fs::read_to_string(path).ok()
+///
+/// A file that's there but can't be read is a [`NotesError`]. "No
+/// notes" and "your notes couldn't be opened" call for different fixes,
+/// so they must not print the same message. Example: a `notes.md` saved
+/// by another user with no read permission for you gives
+///
+/// ```text
+/// The notes file reports/NET-123/notes.md exists but couldn't be read (Permission denied).
+/// ```
+pub fn load(path: &Path) -> Result<Option<String>, NotesError> {
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    match fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(error) => {
+            let reason = if error.kind() == std::io::ErrorKind::InvalidData {
+                "it isn't UTF-8 text".to_string()
+            } else {
+                // "Permission denied (os error 13)" -> "Permission denied",
+                // the words Python's strerror gives.
+                let text = error.to_string();
+                text.split(" (os error").next().unwrap_or(&text).to_string()
+            };
+            Err(NotesError(format!(
+                "The notes file {} exists but couldn't be read ({reason}).",
+                path.display()
+            )))
+        }
+    }
 }
 
 /// Split notes Markdown into sections, prompts dropped.
@@ -179,8 +216,28 @@ pub fn parse(text: &str) -> Vec<Section> {
         }
     }
 
+    // True while inside a comment that opened on an earlier line.
+    let mut in_comment = false;
+
     for raw in text.lines() {
         let line = raw.trim_end();
+
+        // A comment is dropped only when it really is one: it starts its
+        // line with "<!--" and runs to the next "-->", on that line or a
+        // later one. The template's own prompt spans two lines, so the
+        // state is carried across lines. A line that merely ends in "-->"
+        // is the writer's text ("Et49/1 down --> failover") and is kept;
+        // it used to vanish from the report without a word.
+        let opens_here = line.trim_start().starts_with(COMMENT_OPEN);
+        if in_comment || opens_here {
+            let body = if in_comment {
+                line
+            } else {
+                &line.trim_start()[COMMENT_OPEN.len()..]
+            };
+            in_comment = !body.contains(COMMENT_CLOSE);
+            continue;
+        }
 
         if let Some(found) = HEADING.captures(line) {
             close_paragraph(&mut paragraph, &mut blocks);
@@ -195,12 +252,6 @@ pub fn parse(text: &str) -> Vec<Section> {
 
             blocks.clear();
             heading = Some(found[1].to_string());
-            continue;
-        }
-
-        // The template's prompts, and any note-to-self the writer left in
-        // comment form. Dropped, not rendered.
-        if COMMENT_ONLY.is_match(line) || line.trim_start().starts_with("<!--") || line.trim_end().ends_with("-->") {
             continue;
         }
 

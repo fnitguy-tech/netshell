@@ -1,0 +1,56 @@
+Pre/Post Maintenance Comparison Report
+================================================================================
+
+Ticket:           NET-STALE
+Precheck Folder:  reports/NET-STALE/Precheck/precheck_2026-04-14_10-40-00
+Postcheck Folder: reports/NET-STALE/Postcheck/postcheck_2026-04-14_08-50-00
+
+WARNING: The before capture is newer than the after capture. Did you run before again by mistake?
+
+WARNING: The before capture (precheck_2026-04-14_10-40-00) didn't finish. It was interrupted partway, so devices may be missing from it. Run it again before you trust this comparison.
+
+File Summary
+--------------------------------------------------------------------------------
+Common files: 1
+Missing in postcheck: 3
+New in postcheck: 3
+
+Missing in Postcheck:
+- 10.0.0.3_FAILED.txt
+- 10.0.0.8_FAILED.txt
+- V6.txt
+
+New in Postcheck:
++ 10.0.0.9_FAILED.txt
++ 2001_db8__5_FAILED.txt
++ LATE.txt
+
+ACTION REQUIRED: 5 device(s) could not be verified
+--------------------------------------------------------------------------------
+! V6 (2001:db8::5): Device unreachable after the change
+    Before: Captured. After: Failed.
+    Evidence: 2001_db8__5_FAILED.txt in the postcheck folder
+    | no route to host
+! LATE (10.0.0.3): Device unreachable before the change
+    Before: Failed. After: Captured.
+    Evidence: 10.0.0.3_FAILED.txt in the precheck folder
+    | timed out
+! 10.0.0.4: Device unreachable before and after the change
+    Before: Failed. After: Failed.
+    Evidence: 10.0.0.4_FAILED.txt in the precheck folder, and 10.0.0.4_FAILED.txt in the postcheck folder
+    | timed out again
+! 10.0.0.9: Device not attempted after the change
+    Before: Not captured. After: Not attempted.
+    Evidence: 10.0.0.9_FAILED.txt in the postcheck folder
+    | Not tried, because 10.0.0.4 rejected the username or password. Trying it on more devices could lock the account.
+! 10.0.0.8: Device unreachable before the change
+    Before: Failed. After: Not captured.
+    Evidence: 10.0.0.8_FAILED.txt in the precheck folder
+    | timed out
+
+
+================================================================================
+Device/File: SW-1.txt
+================================================================================
+
+No meaningful changes detected.

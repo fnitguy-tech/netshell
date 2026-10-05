@@ -283,9 +283,14 @@ pub struct DeviceReport {
 }
 
 /// Everything the report renders.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Analysis {
     pub common_files: Vec<String>,
+    /// One Action Required finding per device that failed, went
+    /// missing, or is new. Shown first, under "Devices Not Verified".
+    pub device_problems: Vec<Finding>,
+    /// Reasons not to trust this pair of folders, shown above everything.
+    pub warnings: Vec<String>,
     /// Sorted by action count, attention count, findings count, score; descending.
     pub device_reports: Vec<DeviceReport>,
     pub pairs: Vec<(String, String)>,

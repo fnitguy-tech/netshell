@@ -16,6 +16,29 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
+/// The most line pairs the fancy replace may score for one replaced
+/// block: (old lines in the block) x (new lines in the block). Above
+/// it, the block is written the plain way: every `-` line, then every
+/// `+` line (the shorter side goes first, which is difflib's own rule).
+///
+/// Why it matters: when a block of lines is replaced by another block,
+/// the fancy replace scores every old line against every new line to
+/// find the closest pair, lines up on it, then does the same again on
+/// each side. A block of 5,000 changed lines is 25 million scores for
+/// the first pass alone, and the report takes minutes.
+///
+/// Worked example: 200 old lines replaced by 200 new ones is 40,000
+/// pairs, which is at the cap and still gets the fancy treatment. 200
+/// replaced by 201 is 40,200 pairs and is written plain.
+///
+/// Nothing is lost above the cap. Both reports keep only the `-` and
+/// `+` lines, so the same lines appear either way; only their order
+/// within the block changes, from interleaved pairs to
+/// removed-then-added. The largest replaced block in the bundled demo
+/// is 4 pairs, so the demo report is unchanged. The Python tool has the
+/// same cap with the same value (`modules/difftrim.py`).
+pub const FANCY_REPLACE_MAX_PAIRS: usize = 40_000;
+
 /// Port of `difflib.SequenceMatcher` (CPython 3.11) specialised to the
 /// way `ndiff` drives it: the second sequence `b` is indexed once, and
 /// every method takes the first sequence `a` as an argument, so one
@@ -274,6 +297,9 @@ fn is_character_junk(ch: &char) -> bool {
 /// is character junk. Emits `"- line"`, `"+ line"` and `"  line"`; the
 /// `"? "` intraline hint lines are not produced because the report
 /// never reads them.
+///
+/// One guard on top of CPython's: a size cap on the fancy replace (see
+/// [`FANCY_REPLACE_MAX_PAIRS`]).
 struct Differ {
     out: Vec<String>,
 }
@@ -301,6 +327,14 @@ impl Differ {
     /// blocks for *similar* lines; the best-matching pair (if any) is
     /// used as a synch point.
     fn fancy_replace(&mut self, a: &[String], alo: usize, ahi: usize, b: &[String], blo: usize, bhi: usize) {
+        // Too big to score pair by pair: write it plain. The check sits
+        // here, not in compare(), so it also covers the blocks the
+        // fancy helper hands back on each side of a synch point.
+        if (ahi - alo) * (bhi - blo) > FANCY_REPLACE_MAX_PAIRS {
+            self.plain_replace(a, alo, ahi, b, blo, bhi);
+            return;
+        }
+
         // Don't synch up unless the lines have a similarity score of at
         // least cutoff; best_ratio tracks the best score seen so far.
         let (mut best_ratio, cutoff) = (0.74_f64, 0.75_f64);

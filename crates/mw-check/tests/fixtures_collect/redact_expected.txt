@@ -54,7 +54,7 @@ banner motd secret 0 x
  key 0
  key 0 <REDACTED>
  isakmp key 0 <REDACTED> address 1.2.3.4
- authentication text plaintext
+ authentication text <REDACTED>
  crypto isakmp key 6 <REDACTED> address 1.2.3.4
  ip ospf message-digest-key 1 md5 7 <REDACTED>
  ip ospf message-digest-key 1 sha256 <REDACTED>
@@ -67,7 +67,7 @@ banner motd secret 0 x
  secret <REDACTED> secret
  bcrypt <REDACTED>
  <REDACTED>
- $9$abc
+ <REDACTED>
  key <REDACTED> trailing <REDACTED>
  phash <REDACTED>
  secret <REDACTED>
@@ -999,4 +999,92 @@ Architecture: x86_64
 Uptime: 88 days, 2 hours and 47 minutes
 Total memory: 8099732 kB
 Free memory: 5903320 kB
-
+! --- review corpus: one line per rule, from prepost-check tests/test_redact.py ---
+   neighbor 10.0.0.3 password 8a <REDACTED>
+username eng secret 8a <REDACTED>
+tacacs-server host 10.1.1.9 key 8a <REDACTED>
+      key-string <REDACTED>
+   ip ospf authentication-key <REDACTED>
+crypto isakmp key <REDACTED> address 192.0.2.1
+crypto isakmp key 6 <REDACTED> address 192.0.2.2
+ pre-shared-key <REDACTED>
+ pre-shared-key 0 <REDACTED>
+  pre-shared-key local 6 <REDACTED>
+snmp-server host 10.0.0.9 version 2c <REDACTED>
+snmp-server host 10.0.0.9 vrf MGMT traps version 2c <REDACTED> udp-port 162
+snmp-server host 10.0.0.9 <REDACTED>
+snmp-server community <REDACTED> RO
+ntp authentication-key 5 md5 <REDACTED>
+ntp authentication-key 6 md5 7 <REDACTED>
+ ip ospf message-digest-key 1 md5 <REDACTED>
+ ip ospf message-digest-key 2 md5 7 <REDACTED>
+ neighbor 192.0.2.7 password <REDACTED>
+ isis password <REDACTED> level-2
+   isis authentication key 7 <REDACTED>
+ standby 10 authentication <REDACTED>
+ standby 11 authentication text <REDACTED>
+ standby 12 authentication md5 key-string 7 <REDACTED>
+ vrrp 20 authentication text <REDACTED>
+ vrrp 21 authentication <REDACTED>
+            secret <REDACTED>; ## SECRET-DATA
+    authentication-key <REDACTED>;
+        pre-shared-key ascii-text <REDACTED>;
+            encrypted-password <REDACTED>;
+<snmp-community-string><REDACTED></snmp-community-string>
+      <phash><REDACTED></phash>
+<password><REDACTED></password>
+<pre-shared-key><key><REDACTED></key></pre-shared-key>
+<secret><REDACTED></secret>
+<pre-shared-key><REDACTED></pre-shared-key>
+set deviceconfig system snmp-setting access-setting version v2c snmp-community-string <REDACTED>
+set mgt-config users ops phash <REDACTED>
+set shared local-user-database user u1 password <REDACTED>
+   neighbor 10.0.0.3 password 8a <REDACTED>
+username eng secret 8a <REDACTED>
+tacacs-server host 10.1.1.9 key 8a <REDACTED>
+      key-string <REDACTED>
+   ip ospf authentication-key <REDACTED>
+crypto isakmp key <REDACTED> address 192.0.2.1
+crypto isakmp key 6 <REDACTED> address 192.0.2.2
+ pre-shared-key <REDACTED>
+ pre-shared-key 0 <REDACTED>
+  pre-shared-key local 6 <REDACTED>
+snmp-server host 10.0.0.9 version 2c <REDACTED>
+snmp-server host 10.0.0.9 vrf MGMT traps version 2c <REDACTED> udp-port 162
+snmp-server host 10.0.0.9 <REDACTED>
+snmp-server community <REDACTED> RO
+ntp authentication-key 5 md5 <REDACTED>
+ntp authentication-key 6 md5 7 <REDACTED>
+ ip ospf message-digest-key 1 md5 <REDACTED>
+ ip ospf message-digest-key 2 md5 7 <REDACTED>
+ neighbor 192.0.2.7 password <REDACTED>
+ isis password <REDACTED> level-2
+   isis authentication key 7 <REDACTED>
+ standby 10 authentication <REDACTED>
+ standby 11 authentication text <REDACTED>
+ standby 12 authentication md5 key-string 7 <REDACTED>
+ vrrp 20 authentication text <REDACTED>
+ vrrp 21 authentication <REDACTED>
+            secret <REDACTED>; ## SECRET-DATA
+    authentication-key <REDACTED>;
+        pre-shared-key ascii-text <REDACTED>;
+            encrypted-password <REDACTED>;
+<snmp-community-string><REDACTED></snmp-community-string>
+      <phash><REDACTED></phash>
+<password><REDACTED></password>
+<pre-shared-key><key><REDACTED></key></pre-shared-key>
+<secret><REDACTED></secret>
+<pre-shared-key><REDACTED></pre-shared-key>
+set deviceconfig system snmp-setting access-setting version v2c snmp-community-string <REDACTED>
+set mgt-config users ops phash <REDACTED>
+set shared local-user-database user u1 password <REDACTED>
+ vrrp 10 authentication md5 key-chain VRRP-CHAIN
+ standby 10 authentication md5 key-chain HSRP-CHAIN
+snmp-server host 10.0.0.9 version 3 priv snmpuser
+   authentication-key-chain BGP-CHAIN;
+crypto isakmp policy 10
+ authentication pre-share
+<public-key>AAAAB3NzaC1yc2EAAAADAQAB</public-key>
+ key 1
+ tunnel key 4242
+key: -----BEGIN EC PRIVATE KEY-----<REDACTED>-----END EC PRIVATE KEY----- done

@@ -83,7 +83,35 @@ fn write_template_never_overwrites_existing_notes() {
 fn load_returns_none_when_there_is_no_file() {
     let tmp = tempfile::tempdir().unwrap();
 
-    assert_eq!(notes::load(&tmp.path().join("absent.md")), None);
+    assert_eq!(notes::load(&tmp.path().join("absent.md")), Ok(None));
+}
+
+#[test]
+fn a_notes_file_that_cannot_be_read_says_so() {
+    let tmp = tempfile::tempdir().unwrap();
+    let unreadable = tmp.path().join("notes.md");
+    std::fs::write(&unreadable, b"## What we missed\n\n\xff\xfe not utf-8\n").unwrap();
+
+    let error = notes::load(&unreadable).unwrap_err().to_string();
+    assert_eq!(
+        error,
+        format!(
+            "The notes file {} exists but couldn't be read (it isn't UTF-8 text).",
+            unreadable.display()
+        )
+    );
+
+    // A folder where the file should be: also "can't read", not "no notes".
+    let folder = tmp.path().join("dir.md");
+    std::fs::create_dir(&folder).unwrap();
+    let error = notes::load(&folder).unwrap_err().to_string();
+    assert!(error.contains("exists but couldn't be read"), "{error}");
+    assert!(!error.contains("os error"), "{error}");
+
+    // A file that can be read still comes back as text.
+    let fine = tmp.path().join("fine.md");
+    std::fs::write(&fine, "## Still open\n").unwrap();
+    assert_eq!(notes::load(&fine), Ok(Some("## Still open\n".to_string())));
 }
 
 #[test]
@@ -173,4 +201,39 @@ fn prompts_and_comments_are_dropped() {
 
     assert!(!html.contains("found after the fact"));
     assert!(html.contains("<p>the cable.</p>"));
+}
+
+#[test]
+fn a_line_ending_in_an_arrow_is_text_not_a_comment() {
+    let html = notes::render_html(
+        "## What actually happened\n\nEt49/1 went down --> traffic moved to Et50/1\n- [ ] ops - recheck A --> B\n",
+    );
+
+    assert!(html.contains("<p>Et49/1 went down --&gt; traffic moved to Et50/1</p>"));
+    assert!(html.contains("recheck A --&gt; B"));
+    assert_eq!(
+        notes::open_task_count("## Still open\n\n- [ ] ops - recheck A --> B\n"),
+        1
+    );
+}
+
+#[test]
+fn a_comment_spanning_lines_is_dropped_whole() {
+    let html = notes::render_html(
+        "## What we missed\n\n<!-- note to self:\n     ask about the\n     spare optic -->\nthe cable.\n",
+    );
+
+    assert!(!html.contains("note to self"));
+    assert!(!html.contains("ask about"));
+    assert!(!html.contains("spare optic"));
+    assert!(html.contains("<p>the cable.</p>"));
+}
+
+#[test]
+fn the_template_still_renders_nothing_until_it_is_filled_in() {
+    // Its own two-line prompt comment ends in "-->" on the second line.
+    assert_eq!(
+        notes::render_html(&notes::template("NET-1", "pre", "post", &hosts(&["SW-1"]))),
+        ""
+    );
 }

@@ -3,18 +3,27 @@
 //! ```text
 //! mw before NET-123 [-u USER] [-i FILE] [-r]     capture before the change
 //! mw after  NET-123 [-u USER] [-i FILE] [-r]     capture after the change
+//!           (both: --known-hosts FILE, --accept-new-host-key HOST,
+//!            --insecure-accept-any-host-key, --legacy-algorithms,
+//!            --enable, --user-mode)
 //! mw report NET-123 [-i FILE] [-e FILE]          the interpreted HTML report
 //! mw demo   [-H DIR]                             the whole workflow, no devices
 //! ```
 //!
 //! mw is short for maintenance window. The Python tool's names
-//! (`precheck`, `postcheck`, `compare`) still work as aliases. Anything not given is prompted for; the SSH password is
-//! always prompted, never a flag.
+//! (`precheck`, `postcheck`, `compare`) still work as aliases. Anything
+//! not given is prompted for; the SSH password and the enable secret
+//! are always prompted, never a flag.
+//!
+//! `mw before` and `mw after` exit 0 when every device was captured, 1
+//! when some weren't, and 2 when none were. A ticket that can't name a
+//! folder exits 2 as well, like any other usage error.
 
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use mw_check::commands::{compare, demo, notes, postcheck, precheck};
+use mw_check::layout::TicketError;
 
 #[derive(Parser)]
 #[command(
@@ -47,19 +56,27 @@ enum Command {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
+    // A capture leaves with 0, 1, or 2: all, some, or none of the
+    // devices captured. The other commands leave with 0.
     let result = match cli.command {
         Command::Before(args) => precheck::run(args),
         Command::After(args) => postcheck::run(args),
-        Command::Report(args) => compare::run(args),
-        Command::Notes(args) => notes::run(args),
-        Command::Demo(args) => demo::run(args),
+        Command::Report(args) => compare::run(args).map(|()| 0),
+        Command::Notes(args) => notes::run(args).map(|()| 0),
+        Command::Demo(args) => demo::run(args).map(|()| 0),
     };
 
     match result {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => ExitCode::from(code),
         Err(error) => {
             eprintln!("mw: {error:#}");
-            ExitCode::FAILURE
+            // A ticket that can't name a folder is a usage error, like a
+            // flag mw doesn't know: exit 2, as the Python tool does.
+            if error.downcast_ref::<TicketError>().is_some() {
+                ExitCode::from(2)
+            } else {
+                ExitCode::FAILURE
+            }
         }
     }
 }

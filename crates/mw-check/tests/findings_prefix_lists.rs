@@ -31,7 +31,9 @@ fn lines(items: &[&str]) -> Vec<String> {
 fn capture(sections: &[(&str, &[String])]) -> Sections {
     let mut text = String::from("Hostname: SITE-A-SW-1\n");
     for (command, body) in sections {
-        text.push_str(&format!("### {command} ###\n"));
+        text.push_str(&format!(
+            "### {command} ###\n--------------------------------------------------------------------------------\n"
+        ));
         for line in body.iter() {
             text.push_str(line);
             text.push('\n');
@@ -219,10 +221,10 @@ fn falls_back_to_running_config_when_show_is_not_captured() {
 fn full_capture(prefix_lines: &[String]) -> Sections {
     parse_sections_str(&format!(
         "Hostname: SITE-A-SW-1\n\
-         ### show ip bgp summary ###\n  \
+         ### show ip bgp summary ###\n--------------------------------------------------------------------------------\n  \
          ISP-B  198.51.100.9  4 64497  213  201  0  0  00:52:40  Estab  815  815\n\
-         ### show ip prefix-list ###\n{}\n\
-         ### show running-config ###\n\
+         ### show ip prefix-list ###\n--------------------------------------------------------------------------------\n{}\n\
+         ### show running-config ###\n--------------------------------------------------------------------------------\n\
          router bgp 64500\n   \
          neighbor 198.51.100.9 remote-as 64497\n",
         prefix_lines.join("\n")

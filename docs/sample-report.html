@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <title>NET-2043 Maintenance Report</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <style>
 :root {
     --panel: rgba(15, 23, 42, 0.92);
@@ -2216,6 +2216,11 @@ const categoryValues = [22, 10, 29, 2, 4, 0, 0, 2];
 const deviceLabels = ["SITE-B-SW-2", "SITE-A-SW-1", "SITE-A-SW-2", "SITE-B-SW-1", "CORE-MGMT-SW-1", "lab-fw-1", "site-a-fw-1", "site-a-fw-2", "site-b-fw-1", "site-b-fw-2"];
 const deviceImpact = [28, 31, 24, 15, 0, 0, 0, 0, 0, 0];
 
+if (typeof Chart === "undefined") {
+    document.querySelectorAll(".chart-wrap").forEach(function (wrap) {
+        wrap.innerHTML = '<p class="muted">Charts are not shown because Chart.js could not be loaded from the CDN. Everything else in this report is complete.</p>';
+    });
+} else {
 Chart.defaults.color = "#cbd5e1";
 Chart.defaults.borderColor = "rgba(148, 163, 184, 0.18)";
 Chart.defaults.font.family = "Segoe UI, Arial, sans-serif";
@@ -2299,6 +2304,7 @@ new Chart(document.getElementById("deviceImpactChart"), {
         }
     }
 });
+}
 </script>
 
 </body>

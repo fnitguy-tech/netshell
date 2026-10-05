@@ -3,7 +3,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use mw_check::inventory::{Inventory, InventoryError, build_jobs, load_inventory, load_pairs};
+use mw_check::inventory::{DeviceSpec, Inventory, InventoryError, build_jobs, load_inventory, load_pairs};
+use netshell::Secret;
 
 fn example_inventory() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/devices.example.yml")
@@ -34,14 +35,14 @@ fn example_inventory_loads() {
 #[test]
 fn build_jobs_one_per_host() {
     let inventory = load_inventory(&example_inventory()).unwrap();
-    let jobs = build_jobs(&inventory, "admin", "secret");
+    let jobs = build_jobs(&inventory, "admin", &Secret::from("secret"));
 
     let total_hosts: usize = inventory.platforms.iter().map(|p| p.hosts.len()).sum();
     assert_eq!(jobs.len(), total_hosts);
 
     let first = &jobs[0];
     assert_eq!(first.device.username, "admin");
-    assert_eq!(first.device.password, "secret");
+    assert_eq!(first.device.password.expose(), "secret");
     assert_eq!(first.device.device_type, "arista_eos");
     assert_eq!(first.device.host, "192.0.2.11");
     assert_eq!(first.commands, inventory.platforms[0].commands);
@@ -197,6 +198,53 @@ fn load_pairs_reads_and_validates() {
     let not_mapping = write(dir, "list.yml", "- a\n- b\n");
     assert_eq!(
         load_pairs(&not_mapping).unwrap_err().to_string(),
-        format!("{}: expected a YAML mapping.", not_mapping.display())
+        format!(
+            "{}: expected a 'pairs:' list at the top level, like this:\npairs:\n  - [CORE-EAST, CORE-WEST]",
+            not_mapping.display()
+        )
     );
+}
+
+#[test]
+fn a_pairs_only_file_loads_for_the_report() {
+    // What the report docs promise: nothing but "pairs:" is needed.
+    let tmp = tempfile::tempdir().unwrap();
+    let pairs_only = write(tmp.path(), "pairs.yml", "pairs:\n  - [CORE-EAST, CORE-WEST]\n");
+    assert_eq!(
+        load_pairs(&pairs_only).unwrap(),
+        vec![("CORE-EAST".to_string(), "CORE-WEST".to_string())]
+    );
+
+    let empty = write(tmp.path(), "empty.yml", "# nothing yet\n");
+    assert_eq!(load_pairs(&empty).unwrap(), Vec::new());
+
+    // A capture does need devices, and says so in terms of this file.
+    let error = load_inventory(&pairs_only).unwrap_err().to_string();
+    assert!(error.contains("only has a 'pairs' list"), "{error}");
+    assert!(error.contains("'platforms' list of devices to capture"), "{error}");
+}
+
+#[test]
+fn the_password_is_masked_wherever_a_job_is_printed() {
+    let inventory = load_inventory(&example_inventory()).unwrap();
+    let jobs = build_jobs(&inventory, "admin", &Secret::from("hunter2-not-real"));
+    let device = &jobs[0].device;
+
+    for shown in [
+        format!("{device:?}"),
+        format!("{device:#?}"),
+        format!("{jobs:?}"),
+        format!("{:?}", jobs[0]),
+    ] {
+        assert!(!shown.contains("hunter2-not-real"), "{shown}");
+        assert!(shown.contains("<redacted>"), "{shown}");
+    }
+
+    // Still the real password for netshell: the value is there when asked for.
+    assert_eq!(device.password.expose(), "hunter2-not-real");
+    assert_eq!(
+        *device,
+        DeviceSpec::new("arista_eos", "192.0.2.11", "admin", "hunter2-not-real")
+    );
+    assert_ne!(*device, DeviceSpec::new("arista_eos", "192.0.2.11", "admin", "another"));
 }

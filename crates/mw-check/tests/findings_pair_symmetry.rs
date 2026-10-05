@@ -71,23 +71,25 @@ fn titles(findings: &[mw_check::analysis::Finding]) -> Vec<&str> {
 /// A capture with the running config every member has, plus whichever
 /// of the compared commands the test gives it.
 fn capture(prefix_lines: Option<&[&str]>, route_map_lines: Option<&[&str]>, ha: Option<&str>) -> Sections {
-    let mut text = String::from("Hostname: x\n### show running-config ###\nhostname x\n");
+    let mut text = String::from(
+        "Hostname: x\n### show running-config ###\n--------------------------------------------------------------------------------\nhostname x\n",
+    );
     if let Some(lines) = prefix_lines {
-        text.push_str("### show ip prefix-list ###\n");
+        text.push_str("### show ip prefix-list ###\n--------------------------------------------------------------------------------\n");
         for line in lines {
             text.push_str(line);
             text.push('\n');
         }
     }
     if let Some(lines) = route_map_lines {
-        text.push_str("### show route-map ###\n");
+        text.push_str("### show route-map ###\n--------------------------------------------------------------------------------\n");
         for line in lines {
             text.push_str(line);
             text.push('\n');
         }
     }
     if let Some(ha) = ha {
-        text.push_str("### show high-availability state ###\n");
+        text.push_str("### show high-availability state ###\n--------------------------------------------------------------------------------\n");
         text.push_str(ha);
     }
     parse_sections_str(&text)
@@ -398,7 +400,7 @@ fn ha_cookie_split_is_attention_but_active_passive_is_not() {
 /// The capture file the Python test writes to disk for each member.
 fn member_capture(hostname: &str, prefix_lines: &[&str]) -> Sections {
     parse_sections_str(&format!(
-        "Hostname: {hostname}\n### show ip prefix-list ###\n{}\n### show running-config ###\nhostname {hostname}\n",
+        "Hostname: {hostname}\n### show ip prefix-list ###\n--------------------------------------------------------------------------------\n{}\n### show running-config ###\n--------------------------------------------------------------------------------\nhostname {hostname}\n",
         prefix_lines.join("\n")
     ))
 }

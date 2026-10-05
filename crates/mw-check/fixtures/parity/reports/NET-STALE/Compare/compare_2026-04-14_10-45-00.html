@@ -1,0 +1,1119 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NET-STALE Maintenance Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+:root {
+    --panel: rgba(15, 23, 42, 0.92);
+    --text: #e5edf8;
+    --muted: #94a3b8;
+    --line: rgba(148, 163, 184, 0.22);
+    --green: #22c55e;
+    --blue: #38bdf8;
+    --yellow: #f59e0b;
+    --orange: #fb923c;
+    --red: #ef4444;
+    --purple: #a78bfa;
+}
+
+* { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 32%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.14), transparent 34%),
+        linear-gradient(135deg, #020617 0%, #07111f 48%, #111827 100%);
+    color: var(--text);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.header {
+    padding: 34px 44px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(2, 6, 23, 0.72);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.logo {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #020617;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 34px;
+    letter-spacing: -0.04em;
+}
+
+.subtitle, .muted { color: var(--muted); }
+
+.header-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.meta-pill {
+    border: 1px solid var(--line);
+    background: rgba(15, 23, 42, 0.65);
+    border-radius: 999px;
+    padding: 9px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.container { padding: 26px 44px 44px 44px; }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.card, .chart-card, .device, .outcome-card, .attention-card, .notes-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+}
+
+.card {
+    padding: 18px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.card.clickable:hover {
+    transform: translateY(-2px);
+    border-color: rgba(56, 189, 248, 0.65);
+}
+
+.label {
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.value {
+    font-size: 30px;
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+.health-stable { color: var(--green); }
+.health-changed { color: var(--blue); }
+.health-attention { color: var(--yellow); }
+.health-action-required { color: var(--red); }
+
+.outcome-card {
+    padding: 22px;
+    margin-bottom: 28px;
+}
+
+.outcome-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 2fr;
+    gap: 18px;
+}
+
+.outcome-pill {
+    border: 1px solid var(--line);
+    background: rgba(2, 6, 23, 0.38);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.outcome-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #dbeafe;
+}
+
+.attention-card {
+    padding: 18px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--yellow);
+}
+
+.notes-card {
+    padding: 22px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--blue);
+}
+
+.notes-card h3 {
+    margin: 18px 0 8px;
+    font-size: 15px;
+    color: var(--blue);
+}
+
+.notes-card h3:first-of-type { margin-top: 6px; }
+
+.notes-card p {
+    margin: 0 0 10px;
+    line-height: 1.6;
+    color: #dbeafe;
+}
+
+.notes-list {
+    margin: 0 0 10px;
+    padding-left: 20px;
+    line-height: 1.6;
+    color: #dbeafe;
+}
+
+.notes-list .notes-task {
+    list-style: none;
+    margin-left: -20px;
+}
+
+.notes-box {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    color: var(--yellow);
+}
+
+.notes-done .notes-box { color: var(--green); }
+.notes-done { color: var(--muted); }
+
+.pair-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+    padding: 18px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--purple);
+}
+
+.attention-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.attention-link {
+    display: block;
+    border: 1px solid var(--line);
+    background: rgba(245, 158, 11, 0.10);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.attention-link:hover {
+    border-color: rgba(245, 158, 11, 0.65);
+}
+
+.charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.4fr;
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.chart-card { padding: 20px; }
+
+.chart-card h3 { margin: 0 0 6px 0; }
+
+.chart-note {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.chart-wrap {
+    position: relative;
+    height: 300px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 30px 0 14px 0;
+}
+
+.section-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 99px;
+    background: var(--blue);
+    box-shadow: 0 0 18px var(--blue);
+}
+
+.device {
+    margin-bottom: 20px;
+    overflow: hidden;
+    scroll-margin-top: 24px;
+}
+
+.device-header {
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.14), rgba(167, 139, 250, 0.08));
+    border-bottom: 1px solid var(--line);
+}
+
+.device-name {
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.device-summary {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.section {
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--line);
+}
+
+.section:last-child { border-bottom: none; }
+
+.finding {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: rgba(15, 23, 42, 0.62);
+}
+
+.finding.stable {
+    border-left: 4px solid var(--green);
+    background: rgba(34, 197, 94, 0.14);
+}
+
+.finding.changed {
+    border-left: 4px solid var(--blue);
+    background: rgba(56, 189, 248, 0.12);
+}
+
+.finding.attention {
+    border-left: 4px solid var(--yellow);
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.finding.action-required {
+    border-left: 4px solid var(--red);
+    background: rgba(239, 68, 68, 0.14);
+}
+
+.finding-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.badge-stable {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.42);
+}
+
+.badge-changed {
+    background: rgba(56, 189, 248, 0.18);
+    color: #bae6fd;
+    border: 1px solid rgba(56, 189, 248, 0.42);
+}
+
+.badge-attention {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.42);
+}
+
+.badge-action {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.42);
+}
+
+.finding-heading, .peer-name { font-weight: 800; }
+
+.peer-ip, .peer-as {
+    color: var(--muted);
+    font-family: Consolas, monospace;
+}
+
+.finding-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.finding-detail {
+    margin-top: 10px;
+}
+
+.mini-label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+}
+
+.state-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: Consolas, monospace;
+    font-size: 14px;
+}
+
+.arrow { color: var(--blue); }
+
+.explanation {
+    color: #dbeafe;
+    line-height: 1.45;
+}
+
+.evidence {
+    margin-top: 8px;
+    color: #bfdbfe;
+    font-size: 13px;
+}
+
+.diff-box {
+    background: rgba(2, 6, 23, 0.72);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    overflow-x: auto;
+}
+
+.added {
+    color: #86efac;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+.removed {
+    color: #fca5a5;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+.context {
+    color: var(--muted);
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+details {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.54);
+    overflow: hidden;
+}
+
+summary {
+    cursor: pointer;
+    padding: 12px 14px;
+    color: #bae6fd;
+    font-weight: 800;
+}
+
+details .diff-box {
+    border: none;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+}
+
+.empty {
+    color: var(--muted);
+    font-style: italic;
+}
+
+.footer {
+    color: var(--muted);
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+    .cards, .charts, .outcome-grid, .pair-card {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+    padding: 18px;
+    margin-bottom: 28px;
+    border-left: 4px solid var(--purple);
+}
+
+.attention-list {
+        grid-template-columns: 1fr;
+    }
+
+    .header-meta, .finding-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="brand">
+        <div class="logo">M</div>
+        <div>
+            <h1>Maintenance Report</h1>
+            <div class="subtitle">Automated pre/post comparison, interpreted findings, visual summary, and raw evidence package</div>
+        </div>
+    </div>
+
+    <div class="header-meta">
+        <div class="meta-pill">Ticket: NET-STALE</div>
+        <div class="meta-pill">Precheck: reports/NET-STALE/Precheck/precheck_2026-04-14_10-40-00</div>
+        <div class="meta-pill">Postcheck: reports/NET-STALE/Postcheck/postcheck_2026-04-14_08-50-00</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="attention-card" style="border-left-color: var(--red);"><h2>Warning</h2><p>The before capture is newer than the after capture. Did you run before again by mistake?</p></div>
+    <div class="attention-card" style="border-left-color: var(--red);"><h2>Warning</h2><p>The before capture (precheck_2026-04-14_10-40-00) didn&#x27;t finish. It was interrupted partway, so devices may be missing from it. Run it again before you trust this comparison.</p></div>
+    <div id="device-problems" class="attention-card" style="border-left-color: var(--red);"><h2>Devices Not Verified</h2><p class="muted">These devices have no usable capture before or after the change, so nothing below covers them.</p>
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable after the change</span>
+            <span class="peer-name">V6</span>
+            <span class="peer-ip">2001:db8::5</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Captured</span><span class="arrow">→</span><span>Failed</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device answered before the change and didn&#x27;t after. Nothing about its state after the change is known. Check that it&#x27;s up and reachable, then run the postcheck again.</div>
+        <div class="evidence">Evidence: 2001_db8__5_FAILED.txt in the postcheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  no route to host</div></div>
+    </div>
+    
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable before the change</span>
+            <span class="peer-name">LATE</span>
+            <span class="peer-ip">10.0.0.3</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Failed</span><span class="arrow">→</span><span>Captured</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device has no before capture, so there&#x27;s nothing to compare its after state against. Check it by hand.</div>
+        <div class="evidence">Evidence: 10.0.0.3_FAILED.txt in the precheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  timed out</div></div>
+    </div>
+    
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable before and after the change</span>
+            <span class="peer-name">10.0.0.4</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Failed</span><span class="arrow">→</span><span>Failed</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device was never captured, so nothing about it is known. Check it by hand.</div>
+        <div class="evidence">Evidence: 10.0.0.4_FAILED.txt in the precheck folder, and 10.0.0.4_FAILED.txt in the postcheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  timed out again</div></div>
+    </div>
+    
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device not attempted after the change</span>
+            <span class="peer-name">10.0.0.9</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Not captured</span><span class="arrow">→</span><span>Not attempted</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Nothing about this device&#x27;s state after the change is known. Check that it&#x27;s up and reachable, then run the postcheck again.</div>
+        <div class="evidence">Evidence: 10.0.0.9_FAILED.txt in the postcheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  Not tried, because 10.0.0.4 rejected the username or password. Trying it on more devices could lock the account.</div></div>
+    </div>
+    
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable before the change</span>
+            <span class="peer-name">10.0.0.8</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Failed</span><span class="arrow">→</span><span>Not captured</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device has no capture before or after the change, so nothing about it is known. Check it by hand.</div>
+        <div class="evidence">Evidence: 10.0.0.8_FAILED.txt in the precheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  timed out</div></div>
+    </div>
+    </div>
+    <div class="cards">
+        <a class="card clickable" href="#device-findings"><div class="label">Network Health</div><div class="value health-action-required">Action Required</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Devices Checked</div><div class="value">6</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Devices With Findings</div><div class="value">5</div></a>
+        <a class="card clickable" href="#device-findings"><div class="label">Changed</div><div class="value">0</div></a>
+        <a class="card clickable" href="#attention-items"><div class="label">Attention</div><div class="value health-attention">0</div></a>
+        <a class="card clickable" href="#attention-items"><div class="label">Pair Symmetry</div><div class="value">0</div></a>
+    </div>
+
+    <div class="outcome-card">
+        <h2>Maintenance Outcome Summary</h2>
+        <div class="outcome-grid">
+            <div class="outcome-pill">
+                <strong>Assessment</strong>
+                <p>5 device(s) couldn&#x27;t be verified: the capture failed or is missing. They&#x27;re listed first, under Devices Not Verified. Something here may need fixing. Click Action Required to jump to it.</p>
+            </div>
+            <div class="outcome-pill">
+                <strong>Detected Categories</strong>
+                <ul class="outcome-list">
+
+<li>5 system item(s).</li>
+
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="attention-items" class="attention-card">
+        <h2>Items Needing Attention</h2>
+
+<div class="attention-list">
+
+        <a class="attention-link" href="#device-v6">
+            <strong>V6.txt</strong><br>
+            <span class="muted">Attention: 0 | Action Required: 1 | Impact Score: 10</span>
+        </a>
+        
+
+        <a class="attention-link" href="#device-late">
+            <strong>LATE.txt</strong><br>
+            <span class="muted">Attention: 0 | Action Required: 1 | Impact Score: 10</span>
+        </a>
+        
+
+        <a class="attention-link" href="#device-10-0-0-4-failed">
+            <strong>10.0.0.4_FAILED.txt</strong><br>
+            <span class="muted">Attention: 0 | Action Required: 1 | Impact Score: 10</span>
+        </a>
+        
+
+        <a class="attention-link" href="#device-10-0-0-9-failed">
+            <strong>10.0.0.9_FAILED.txt</strong><br>
+            <span class="muted">Attention: 0 | Action Required: 1 | Impact Score: 10</span>
+        </a>
+        
+
+        <a class="attention-link" href="#device-10-0-0-8-failed">
+            <strong>10.0.0.8_FAILED.txt</strong><br>
+            <span class="muted">Attention: 0 | Action Required: 1 | Impact Score: 10</span>
+        </a>
+        
+</div>
+
+    </div>
+
+    <div id="pair-symmetry" class="pair-card">
+        <h2>Pair Symmetry</h2>
+
+<p class="empty">No redundant pairs to compare: no two captured hostnames differ only by a trailing number, and the inventory lists no pairs.</p>
+
+    </div>
+
+    <div class="charts">
+        <div class="chart-card">
+            <h3>Operational Health</h3>
+            <div class="chart-note">Stable, changed, attention, and action-required classifications.</div>
+            <div class="chart-wrap"><canvas id="healthChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Findings by Category</h3>
+            <div class="chart-note">Generic categories that remain useful across maintenance types.</div>
+            <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <h3>Device Impact</h3>
+            <div class="chart-note">Ranks devices by interpreted operational impact, not raw diff volume.</div>
+            <div class="chart-wrap"><canvas id="deviceImpactChart"></canvas></div>
+        </div>
+    </div>
+
+    <div id="device-findings" class="section-title">
+        <div class="section-dot"></div>
+        <h2>Device Findings</h2>
+    </div>
+
+
+    <div id="device-v6" class="device">
+        <div class="device-header">
+            <div class="device-name">V6.txt</div>
+            <div class="device-summary">Findings: 1 | Impact Score: 10 | Evidence Sections: 0</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable after the change</span>
+            <span class="peer-name">V6</span>
+            <span class="peer-ip">2001:db8::5</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Captured</span><span class="arrow">→</span><span>Failed</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device answered before the change and didn&#x27;t after. Nothing about its state after the change is known. Check that it&#x27;s up and reachable, then run the postcheck again.</div>
+        <div class="evidence">Evidence: 2001_db8__5_FAILED.txt in the postcheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  no route to host</div></div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+<p class="empty">No raw differences detected.</p>
+
+        </div>
+    </div>
+    
+
+    <div id="device-late" class="device">
+        <div class="device-header">
+            <div class="device-name">LATE.txt</div>
+            <div class="device-summary">Findings: 1 | Impact Score: 10 | Evidence Sections: 0</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable before the change</span>
+            <span class="peer-name">LATE</span>
+            <span class="peer-ip">10.0.0.3</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Failed</span><span class="arrow">→</span><span>Captured</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device has no before capture, so there&#x27;s nothing to compare its after state against. Check it by hand.</div>
+        <div class="evidence">Evidence: 10.0.0.3_FAILED.txt in the precheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  timed out</div></div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+<p class="empty">No raw differences detected.</p>
+
+        </div>
+    </div>
+    
+
+    <div id="device-10-0-0-4-failed" class="device">
+        <div class="device-header">
+            <div class="device-name">10.0.0.4_FAILED.txt</div>
+            <div class="device-summary">Findings: 1 | Impact Score: 10 | Evidence Sections: 0</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable before and after the change</span>
+            <span class="peer-name">10.0.0.4</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Failed</span><span class="arrow">→</span><span>Failed</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device was never captured, so nothing about it is known. Check it by hand.</div>
+        <div class="evidence">Evidence: 10.0.0.4_FAILED.txt in the precheck folder, and 10.0.0.4_FAILED.txt in the postcheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  timed out again</div></div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+<p class="empty">No raw differences detected.</p>
+
+        </div>
+    </div>
+    
+
+    <div id="device-10-0-0-9-failed" class="device">
+        <div class="device-header">
+            <div class="device-name">10.0.0.9_FAILED.txt</div>
+            <div class="device-summary">Findings: 1 | Impact Score: 10 | Evidence Sections: 0</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device not attempted after the change</span>
+            <span class="peer-name">10.0.0.9</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Not captured</span><span class="arrow">→</span><span>Not attempted</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">Nothing about this device&#x27;s state after the change is known. Check that it&#x27;s up and reachable, then run the postcheck again.</div>
+        <div class="evidence">Evidence: 10.0.0.9_FAILED.txt in the postcheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  Not tried, because 10.0.0.4 rejected the username or password. Trying it on more devices could lock the account.</div></div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+<p class="empty">No raw differences detected.</p>
+
+        </div>
+    </div>
+    
+
+    <div id="device-10-0-0-8-failed" class="device">
+        <div class="device-header">
+            <div class="device-name">10.0.0.8_FAILED.txt</div>
+            <div class="device-summary">Findings: 1 | Impact Score: 10 | Evidence Sections: 0</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+
+    <div class="finding action-required">
+        <div class="finding-title">
+            <span class="badge badge-action">Action Required</span>
+            <span class="finding-heading">Device unreachable before the change</span>
+            <span class="peer-name">10.0.0.8</span>
+            
+        </div>
+
+        <div class="finding-grid">
+            <div>
+                <div class="mini-label">Capture</div>
+                <div class="state-flow"><span>Failed</span><span class="arrow">→</span><span>Not captured</span></div>
+            </div>
+        </div>
+
+        <div class="explanation">This device has no capture before or after the change, so nothing about it is known. Check it by hand.</div>
+        <div class="evidence">Evidence: 10.0.0.8_FAILED.txt in the precheck folder</div>
+        <div class="diff-box finding-detail"><div class="context">  timed out</div></div>
+    </div>
+    
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+<p class="empty">No raw differences detected.</p>
+
+        </div>
+    </div>
+    
+
+    <div id="device-sw-1" class="device">
+        <div class="device-header">
+            <div class="device-name">SW-1.txt</div>
+            <div class="device-summary">Findings: 0 | Impact Score: 0 | Evidence Sections: 0</div>
+        </div>
+
+        <div class="section">
+            <h3>Protocol / Routing Interpretation</h3>
+    
+<p class="empty">No meaningful BGP neighbor, prefix, prefix-list, or interface address changes detected.</p>
+
+        </div>
+
+        <div class="section">
+            <h3>Configuration / Policy Changes</h3>
+            <div class="diff-box">
+    
+<p class="empty">No BGP-related config changes detected.</p>
+
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Evidence Only - Collapsible Raw Diffs</h3>
+    
+<p class="empty">No raw differences detected.</p>
+
+        </div>
+    </div>
+    
+
+</div>
+
+<div class="footer">
+    Generated 2026-10-05 18:43:25 | Maintenance Report
+</div>
+
+<script>
+const healthLabels = ["Stable", "Changed", "Attention", "Action Required"];
+const healthValues = [0, 0, 0, 5];
+
+const categoryLabels = ["Configuration", "Protocol", "Routing", "Interface", "Layer 2", "Firewall", "System", "Evidence only"];
+const categoryValues = [0, 0, 0, 0, 0, 0, 5, 0];
+
+const deviceLabels = ["V6", "LATE", "10.0.0.4_FAILED", "10.0.0.9_FAILED", "10.0.0.8_FAILED", "SW-1"];
+const deviceImpact = [10, 10, 10, 10, 10, 0];
+
+if (typeof Chart === "undefined") {
+    document.querySelectorAll(".chart-wrap").forEach(function (wrap) {
+        wrap.innerHTML = '<p class="muted">Charts are not shown because Chart.js could not be loaded from the CDN. Everything else in this report is complete.</p>';
+    });
+} else {
+Chart.defaults.color = "#cbd5e1";
+Chart.defaults.borderColor = "rgba(148, 163, 184, 0.18)";
+Chart.defaults.font.family = "Segoe UI, Arial, sans-serif";
+
+new Chart(document.getElementById("healthChart"), {
+    type: "doughnut",
+    data: {
+        labels: healthLabels,
+        datasets: [{
+            data: healthValues,
+            backgroundColor: [
+                "rgba(34, 197, 94, 0.78)",
+                "rgba(56, 189, 248, 0.78)",
+                "rgba(245, 158, 11, 0.78)",
+                "rgba(239, 68, 68, 0.78)"
+            ],
+            borderColor: "rgba(15, 23, 42, 0.92)",
+            borderWidth: 3
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: "bottom" }
+        },
+        cutout: "68%"
+    }
+});
+
+new Chart(document.getElementById("categoryChart"), {
+    type: "bar",
+    data: {
+        labels: categoryLabels,
+        datasets: [{
+            label: "Findings / evidence items",
+            data: categoryValues,
+            backgroundColor: "rgba(56, 189, 248, 0.72)",
+            borderRadius: 8
+        }]
+    },
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+new Chart(document.getElementById("deviceImpactChart"), {
+    type: "bar",
+    data: {
+        labels: deviceLabels,
+        datasets: [{
+            label: "Impact score",
+            data: deviceImpact,
+            backgroundColor: "rgba(167, 139, 250, 0.72)",
+            borderRadius: 8
+        }]
+    },
+    options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        },
+        plugins: {
+            legend: { position: "bottom" }
+        }
+    }
+});
+}
+</script>
+
+</body>
+</html>

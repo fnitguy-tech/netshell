@@ -13,13 +13,14 @@
 //! | `inventory`     | loads + validates `inventory/devices.yml` (platforms, pairs) |
 //! | `collect`       | parallel SSH capture via netshell, zip packaging            |
 //! | `redact`        | `-r`: strips passwords, hashes and keys from captures        |
-//! | `capture`       | the `### command ###` capture file format                   |
+//! | `capture`       | the capture file format; failed, missing, and stale captures |
 //! | `textcompare`   | normalization rules + the quick .txt diff report            |
 //! | `difflib`       | port of Python's ndiff, so every diff orders lines the same |
 //! | `analysis`      | parsers, findings, pair symmetry, impact scoring            |
 //! | `notes`         | your write-up of the window, rendered into the report       |
 //! | `report`        | the self-contained HTML report                              |
-//! | `layout`        | `reports/<TICKET>/` directory conventions                   |
+//! | `layout`        | `reports/<TICKET>/` directory conventions, safe file names  |
+//! | `hostkeys`      | which known-hosts file and host-key policy netshell is given |
 //! | `vpn`           | IPsec/IKE/LSVPN churn rule shared by both compare views     |
 //!
 //! Capture files written by this crate and by the Python tool are
@@ -30,6 +31,7 @@ pub mod capture;
 pub mod collect;
 pub mod commands;
 pub mod difflib;
+pub mod hostkeys;
 pub mod inventory;
 pub mod layout;
 pub mod notes;
