@@ -273,7 +273,12 @@ impl SshConnector {
     }
 
     /// The netshell options for one device.
-    pub fn options_for(&self, device: &DeviceSpec) -> Result<ConnectOptions, netshell::Error> {
+    ///
+    /// Returns `anyhow::Result` on purpose. `netshell::Error` is over
+    /// clippy's large-error limit on Windows, and the only caller wants an
+    /// `anyhow::Error` anyway. The netshell error is still inside it, so
+    /// callers can downcast to tell an unknown platform from the rest.
+    pub fn options_for(&self, device: &DeviceSpec) -> anyhow::Result<ConnectOptions> {
         let platform = Platform::by_name(&device.device_type)?;
         let mut options = ConnectOptions::new(&device.host, &device.username, device.password.clone(), platform)
             .read_timeout(Duration::from_secs(COMMAND_READ_TIMEOUT_SECS))
