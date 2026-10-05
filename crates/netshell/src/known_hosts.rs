@@ -101,7 +101,11 @@ pub(crate) fn check_and_record(
 
     let mut lock_name = path.as_os_str().to_owned();
     lock_name.push(".lock");
-    let lock = private_file().append(true).open(PathBuf::from(lock_name))?;
+    // Read and write, not append. Windows only grants a file lock on a
+    // handle opened for reading or writing; an append-only handle gets
+    // "Access is denied" from the lock call. Nothing is ever written
+    // to this file.
+    let lock = private_file().read(true).write(true).open(PathBuf::from(lock_name))?;
     lock.lock()?;
     let verdict = locked_check_and_record(path, id, algorithm, fingerprint, replace);
     let _ = lock.unlock();
