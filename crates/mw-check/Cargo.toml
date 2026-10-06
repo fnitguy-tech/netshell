@@ -1,6 +1,6 @@
 [package]
 name = "mw-check"
-version = "0.1.1"
+version = "0.2.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -20,7 +20,7 @@ indexmap = { version = "2.12", features = ["serde"] }
 indicatif = "0.18"
 # mw has its own command line, so it leaves out netshell's `cli`
 # feature (clap, rpassword, and the Windows icon step for that binary).
-netshell = { path = "../netshell", version = "0.1.1", default-features = false }
+netshell = { path = "../netshell", version = "0.2.0", default-features = false }
 regex = "1.13"
 rpassword = "7.5"
 serde = { version = "1.0", features = ["derive"] }
