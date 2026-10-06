@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: fnitguy-tech.mw
+PackageVersion: "0.2.0"
+PackageLocale: en-US
+Publisher: fnitguy-tech
+PublisherUrl: https://github.com/fnitguy-tech
+PublisherSupportUrl: https://github.com/fnitguy-tech/netshell/issues
+PackageName: mw
+PackageUrl: https://github.com/fnitguy-tech/netshell
+License: MIT
+LicenseUrl: https://github.com/fnitguy-tech/netshell/blob/main/LICENSE
+ShortDescription: Maintenance window check for network devices
+Description: Capture device state before a network change and again after, diff the two with expected churn stripped, and turn the difference into an interpreted HTML report with impact-rated findings. Arista EOS, Cisco, Juniper Junos and Palo Alto PAN-OS over SSH.
+Tags:
+  - network
+  - arista
+  - cisco
+  - juniper
+  - panos
+  - ssh
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
