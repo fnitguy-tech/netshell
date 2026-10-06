@@ -503,7 +503,7 @@ netshell --platform arista_eos --host 192.0.2.11 --username admin "show version"
 It checks host keys the way `ssh` does. The first connect to a device
 records its key. If the key ever changes, netshell refuses to connect
 and tells you which line of the known-hosts file to remove. This is new
-in the next release: before, any host key was accepted.
+in 0.2.0: before, any host key was accepted.
 
 A few flags cover the cases that come up in a real fleet:
 

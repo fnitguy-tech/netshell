@@ -12,7 +12,7 @@ or a Python install.
 
 `render.sh <version> <dist>` is what the workflow runs; it works
 locally against a directory holding the Windows binaries, e.g. after
-`gh release download v0.1.0 -D dist`.
+`gh release download v0.2.0 -D dist`.
 
 Code signing is the one lever not pulled here. With an Azure Trusted
 Signing account or a code-signing certificate, add a signing step to
