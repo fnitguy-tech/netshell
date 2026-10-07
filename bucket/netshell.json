@@ -1,12 +1,12 @@
 {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Run show commands on network devices over SSH (Arista, Cisco, Juniper, PAN-OS)",
     "homepage": "https://github.com/fnitguy-tech/netshell",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/fnitguy-tech/netshell/releases/download/v0.2.0/netshell-windows-x86_64.exe#/netshell.exe",
-            "hash": "9cc47b407a16e37ec15cb20e5e3384221403205ff28866698dc9021c3e80248c"
+            "url": "https://github.com/fnitguy-tech/netshell/releases/download/v0.3.0/netshell-windows-x86_64.exe#/netshell.exe",
+            "hash": "68b8782f6d78082f164e7f33184537272c0195d2aeb6c46695a497cfd40cf29f"
         }
     },
     "bin": "netshell.exe",

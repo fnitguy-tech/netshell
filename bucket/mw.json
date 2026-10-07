@@ -1,12 +1,12 @@
 {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Maintenance window check for network devices: capture state before and after a change, report what changed",
     "homepage": "https://github.com/fnitguy-tech/netshell",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/fnitguy-tech/netshell/releases/download/v0.2.0/mw-windows-x86_64.exe#/mw.exe",
-            "hash": "1f69a743dc89a031aaa5d5da07d47486cbeb4750e3d1b91ef66680de81fc90b3"
+            "url": "https://github.com/fnitguy-tech/netshell/releases/download/v0.3.0/mw-windows-x86_64.exe#/mw.exe",
+            "hash": "b10054483a91fc00ad6f66d6eac17b326cb204390bfb9225ecaf788719e42843"
         }
     },
     "bin": "mw.exe",
