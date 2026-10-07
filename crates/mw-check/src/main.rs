@@ -1,6 +1,7 @@
-//! One binary, four short subcommands:
+//! One binary, short subcommands:
 //!
 //! ```text
+//! mw init   [-H DIR]                             make a folder ready: inventory/ + reports/
 //! mw before NET-123 [-u USER] [-i FILE] [-r]     capture before the change
 //! mw after  NET-123 [-u USER] [-i FILE] [-r]     capture after the change
 //!           (both: --known-hosts FILE, --accept-new-host-key HOST,
@@ -22,7 +23,7 @@
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
-use mw_check::commands::{compare, demo, notes, postcheck, precheck};
+use mw_check::commands::{compare, demo, init, notes, postcheck, precheck};
 use mw_check::layout::TicketError;
 
 #[derive(Parser)]
@@ -30,7 +31,7 @@ use mw_check::layout::TicketError;
     name = "mw",
     version,
     about = "Maintenance window check: capture device state before and after a change, report what changed",
-    after_help = "Example:\n  mw before NET-123 -r    capture before the change, secrets stripped\n  mw after NET-123 -r     capture after, quick text diff\n  mw report NET-123       interpreted HTML report"
+    after_help = "Example:\n  mw init                 make this folder ready (example inventory, reports/)\n  mw before NET-123 -r    capture before the change, secrets stripped\n  mw after NET-123 -r     capture after, quick text diff\n  mw report NET-123       interpreted HTML report"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -39,6 +40,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Make this folder ready for captures: inventory/devices.example.yml and reports/
+    Init(init::Args),
     /// Capture device state before the change (reports/<TICKET>/Precheck/)
     #[command(aliases = ["pre", "precheck"])]
     Before(precheck::Args),
@@ -59,6 +62,7 @@ fn main() -> ExitCode {
     // A capture leaves with 0, 1, or 2: all, some, or none of the
     // devices captured. The other commands leave with 0.
     let result = match cli.command {
+        Command::Init(args) => init::run(args).map(|()| 0),
         Command::Before(args) => precheck::run(args),
         Command::After(args) => postcheck::run(args),
         Command::Report(args) => compare::run(args).map(|()| 0),

@@ -102,10 +102,7 @@ const EMBEDDED_FIXTURES: &[(&str, &str)] = &[
         "NET-DEMO/SCENARIO.md",
         include_str!("../../fixtures/NET-DEMO/SCENARIO.md"),
     ),
-    (
-        "devices.example.yml",
-        include_str!("../../fixtures/devices.example.yml"),
-    ),
+    ("devices.example.yml", crate::inventory::EXAMPLE_INVENTORY_TEXT),
 ];
 
 /// The folder holding `NET-DEMO/`. When it's a copy unpacked from the

@@ -6,8 +6,8 @@
 //! explicitly (otherwise they are inferred from hostnames).
 //!
 //! The file is the one the Python tool reads (`inventory/devices.yml`,
-//! gitignored there because it names real hosts). Copy
-//! `fixtures/devices.example.yml` and edit: adding a device or a
+//! gitignored there because it names real hosts). `mw init` writes the
+//! bundled example next to it; copy and edit: adding a device or a
 //! command never means touching code.
 
 use std::io::{BufRead, Write};
@@ -16,8 +16,9 @@ use std::path::Path;
 use netshell::Secret;
 use serde_yaml::Value;
 
-/// The bundled example, relative to the crate source tree.
-pub const EXAMPLE_INVENTORY: &str = "fixtures/devices.example.yml";
+/// The bundled example inventory, compiled into the binary so `mw init`
+/// can write it out with no source tree around.
+pub const EXAMPLE_INVENTORY_TEXT: &str = include_str!("../fixtures/devices.example.yml");
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Platform {
@@ -97,7 +98,8 @@ pub struct InventoryError(pub String);
 pub fn load_inventory(path: &Path) -> Result<Inventory, InventoryError> {
     if !path.exists() {
         return Err(InventoryError(format!(
-            "Inventory not found: {}\nCopy {EXAMPLE_INVENTORY} (bundled with the mw source) to {} and fill in your devices.",
+            "Inventory not found: {}\nRun `mw init` in the folder you want to work from. It writes inventory/devices.example.yml; \
+             copy that to {} and put your devices in it. To run mw from any folder, set MW_HOME to that folder.",
             path.display(),
             crate::layout::default_inventory().display()
         )));

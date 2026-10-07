@@ -98,9 +98,9 @@ so it reports "No meaningful changes detected."
 
 ## Run it against your network
 
-Put your devices in `inventory/devices.yml` (copy
-[`devices.example.yml`](crates/mw-check/fixtures/devices.example.yml) to
-start), then from that directory:
+Pick a folder for your captures and run `mw init` in it. That writes
+`inventory/devices.example.yml` and makes `reports/`. Copy the example to
+`inventory/devices.yml`, put your devices in it, then from that folder:
 
 ```text
 mw before NET-123 -r
