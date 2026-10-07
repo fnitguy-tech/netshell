@@ -1,6 +1,6 @@
 [package]
 name = "netshell"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 # russh 0.63 needs Rust 1.89, so that's the real floor for this crate.
 rust-version = "1.89"
